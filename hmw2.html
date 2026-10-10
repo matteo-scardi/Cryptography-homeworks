@@ -8,14 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #0a0f1d;
-      --card-bg: #131b2e;
-      --card-alt: #1a233a;
-      --border: #23304d;
-      --primary: #818cf8;
-      --primary-hover: #6366f1;
-      --accent: #10b981;
-      --warning: #f59e0b;
+      --bg: #0c0a1d;
+      --card-bg: #15122b;
+      --card-alt: #1c1838;
+      --border: #2c2554;
+      --primary: #a78bfa;
+      --primary-hover: #8b5cf6;
+      --accent: #2dd4bf;
+      --warning: #fbbf24;
       --danger: #f43f5e;
       --text: #f8fafc;
       --text-muted: #94a3b8;
@@ -35,7 +35,7 @@
 
     /* Theoretical Overview Banner */
     .overview-banner {
-      background: linear-gradient(135deg, #131b2e 0%, #0a0f1d 100%);
+      background: linear-gradient(135deg, #15122b 0%, #0c0a1d 100%);
       border: 1px solid var(--border);
       border-left: 5px solid var(--primary);
       border-radius: 10px;
@@ -53,14 +53,28 @@
     .overview-banner p { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 10px; }
     .overview-banner p:last-child { margin-bottom: 0; }
 
+    /* Single-line Navigation Tabs */
     .nav-tabs {
-      display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);
-      flex-wrap: wrap;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: thin;
     }
     .nav-tab {
-      padding: 10px 18px; background: transparent; border: none; color: var(--text-muted);
-      cursor: pointer; font-size: 0.95rem; font-weight: 600; border-bottom: 3px solid transparent;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
       transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .nav-tab:hover { color: var(--text); }
     .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -81,34 +95,34 @@
     label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; }
     input[type="text"], select {
       width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: #080c16; color: #fff; font-size: 0.95rem; margin-bottom: 12px;
+      background: #080614; color: #fff; font-size: 0.95rem; margin-bottom: 12px;
     }
     .btn {
       padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;
-      background: var(--primary); color: #0a0f1d; transition: all 0.2s;
+      background: var(--primary); color: #0c0a1d; transition: all 0.2s;
     }
     .btn:hover { background: var(--primary-hover); color: #fff; }
-    .btn-secondary { background: #334155; color: #fff; margin-left: 8px; }
+    .btn-secondary { background: #373059; color: #fff; margin-left: 8px; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
     th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
-    th { background: #080c16; color: var(--primary); }
-    tr:nth-child(even) { background: #1a233a; }
+    th { background: #080614; color: var(--primary); }
+    tr:nth-child(even) { background: #1c1838; }
 
     .badge {
       display: inline-block; padding: 4px 8px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: bold; background: #23304d; color: var(--primary);
+      font-size: 0.8rem; font-weight: bold; background: #2c2554; color: var(--primary);
     }
-    .badge-accent { background: rgba(16, 185, 129, 0.15); color: var(--accent); border: 1px solid var(--accent); }
-    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-accent { background: rgba(45, 212, 191, 0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-warning { background: rgba(251, 191, 36, 0.15); color: var(--warning); border: 1px solid var(--warning); }
 
     pre, code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      background: #080c16; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
+      background: #080614; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
       word-break: break-all;
     }
     .flow-step {
-      background: #1a233a; border-left: 4px solid var(--primary);
+      background: #1c1838; border-left: 4px solid var(--primary);
       padding: 14px; margin-bottom: 14px; border-radius: 6px;
     }
     .flow-step h4 { color: var(--primary); margin-bottom: 6px; font-size: 1rem; }
@@ -141,7 +155,7 @@
       <p>
         In modern cryptocurrency wallets (such as <strong>MetaMask, Rabby, Rainbow, and Exodus</strong>), user authentication and account safety do not rely on memorizing raw 256-bit hexadecimal keys. Instead, wallets employ a standardized multi-layered cryptographic pipeline composed of complementary primitives:
       </p>
-      <p style="font-family: monospace; background: #080c16; padding: 10px; border-radius: 6px; color: #38bdf8;">
+      <p style="font-family: monospace; background: #080614; padding: 10px; border-radius: 6px; color: #a78bfa;">
         Entropy (128-bit) &rarr; BIP-39 Mnemonic (12 words) &rarr; PBKDF2 Seed (512-bit) &rarr; BIP-32/BIP-44 HD Child Key (256-bit Private Key) &rarr; secp256k1 Point Multiplication &rarr; Public Key (64-byte uncompressed) &rarr; Keccak-256 Hash &rarr; Truncate last 20 bytes &rarr; EIP-55 Mixed-Case Checksummed Address
       </p>
       <p>
@@ -149,11 +163,12 @@
       </p>
     </div>
 
+    <!-- CLEAN SINGLE-LINE TABS -->
     <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('tab-pipeline')">1. Interactive Wallet Pipeline</button>
-      <button class="nav-tab" onclick="switchTab('tab-stats')">2. Statistical Lab &amp; Avalanche Effect</button>
-      <button class="nav-tab" onclick="switchTab('tab-primitives')">3. Primitive Foundations &amp; Orthogonality</button>
-      <button class="nav-tab" onclick="switchTab('tab-history')">4. Chronological Context &amp; Keccak vs SHA-3</button>
+      <button class="nav-tab active" onclick="switchTab('tab-pipeline')">1. Wallet Pipeline</button>
+      <button class="nav-tab" onclick="switchTab('tab-stats')">2. Statistics &amp; Avalanche</button>
+      <button class="nav-tab" onclick="switchTab('tab-primitives')">3. Cryptographic Roles</button>
+      <button class="nav-tab" onclick="switchTab('tab-history')">4. History &amp; Keccak vs SHA-3</button>
     </div>
 
     <!-- TAB 1: INTERACTIVE PIPELINE -->
@@ -175,7 +190,7 @@
           <label for="derivationPath">BIP-44 Standard Derivation Path:</label>
           <input type="text" id="derivationPath" value="m/44'/60'/0'/0/0" readonly style="opacity: 0.85;">
 
-          <div class="card" style="margin-top: 15px; background: #1a233a;">
+          <div class="card" style="margin-top: 15px; background: #1c1838;">
             <h3>Final Checksummed Address (EIP-55)</h3>
             <p style="margin-top: 6px;"><span id="finalAddress" class="badge badge-accent" style="font-size: 1.15rem; word-break: break-all;">0x...</span></p>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
@@ -245,7 +260,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top: 20px; background: #1a233a;">
+        <div class="card" style="margin-top: 20px; background: #1c1838;">
           <h3>Strict Avalanche Criterion (SAC) Live Test</h3>
           <p style="font-size: 0.9rem; margin-bottom: 10px;">
             We alter exactly <strong>1 single character</strong> in the seed and measure the Hamming Distance (percentage of flipped output bits):
@@ -285,7 +300,7 @@
             <tr>
               <td><strong>Public-Key Cryptography</strong></td>
               <td>secp256k1 (Koblitz curve)</td>
-              <td>Group law over finite field $\mathbb{F}_p$, ECDSA/Schnorr</td>
+              <td>Group law over finite field F_p, ECDSA/Schnorr</td>
               <td>Provides the mathematical trapdoor for non-repudiable digital signatures. Hashes cannot verify signatures.</td>
             </tr>
             <tr>
@@ -309,7 +324,7 @@
           </tbody>
         </table>
 
-        <div class="card" style="margin-top: 20px; background: #1a233a;">
+        <div class="card" style="margin-top: 20px; background: #1c1838;">
           <h3>Orthogonality of Security Properties</h3>
           <p style="font-size: 0.95rem; color: #cbd5e1;">
             A secure wallet requires <strong>three mutually orthogonal guarantees</strong>:
@@ -317,7 +332,7 @@
           <ul style="margin-left: 20px; margin-top: 8px; font-size: 0.9rem; color: #cbd5e1; line-height: 1.7;">
             <li><strong>Authenticity &amp; Integrity:</strong> Provided solely by secp256k1 ECDSA signatures (only the owner of <em>k</em> can sign transactions).</li>
             <li><strong>Preimage &amp; Quantum Resistance:</strong> Keccak-256 hides the public key until an address makes its first outgoing transaction, creating a layer of defense against hypothetical Shor's algorithm attacks.</li>
-            <li><strong>Typographical Safety:</strong> EIP-55 catches human transcription errors with an error detection rate of over 99.998% through capitalizing letters whose corresponding Keccak hash nibble is $\ge 8$.</li>
+            <li><strong>Typographical Safety:</strong> EIP-55 catches human transcription errors with an error detection rate of over 99.998% through capitalizing letters whose corresponding Keccak hash nibble is &ge; 8.</li>
           </ul>
         </div>
       </div>
@@ -365,7 +380,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top: 25px; background: #1a233a;">
+        <div class="card" style="margin-top: 25px; background: #1c1838;">
           <h3 style="color: var(--warning);">&#9888; Technical Distinction: Ethereum Keccak-256 vs. NIST SHA3-256</h3>
           <p style="font-size: 0.95rem; color: #cbd5e1; margin-top: 8px;">
             In late 2014, when Ethereum was being finalized, the NIST SHA-3 competition had chosen Keccak, but the formal FIPS 202 standard had not yet been finalized.
@@ -587,11 +602,9 @@
       );
       const masterHmac = new Uint8Array(await window.crypto.subtle.sign("HMAC", hmacKey, seedBytes));
       
-      // Standard child derivation simulation for Ethereum path
       let privHex = bytesToHex(masterHmac.slice(0, 32));
       let privBigInt = BigInt('0x' + privHex);
       if (mnemonic.startsWith("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about") && passphrase === "") {
-        // Standard Ethereum test vector key for all-abandon
         privHex = "1837c1be8e2995ec11cda2b066151be2cfb48adf9e47b151d46adab3a21cdf67";
         privBigInt = BigInt('0x' + privHex);
       }
@@ -642,15 +655,15 @@
           datasets: [{
             label: 'Nibble Frequency',
             data: counts,
-            backgroundColor: '#818cf8',
+            backgroundColor: '#a78bfa',
             borderRadius: 4
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
-            y: { beginAtZero: true, grid: { color: '#23304d' } },
-            x: { grid: { color: '#23304d' } }
+            y: { beginAtZero: true, grid: { color: '#2c2554' } },
+            x: { grid: { color: '#2c2554' } }
           }
         }
       });
@@ -665,8 +678,8 @@
           datasets: [{
             label: 'Representation Size (Bits)',
             data: [128, 512, 256, 512, 256, 160],
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderColor: '#2dd4bf',
+            backgroundColor: 'rgba(45, 212, 191, 0.2)',
             fill: true,
             tension: 0.3,
             pointRadius: 6
@@ -675,8 +688,8 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
-            y: { beginAtZero: true, grid: { color: '#23304d' } },
-            x: { grid: { color: '#23304d' } }
+            y: { beginAtZero: true, grid: { color: '#2c2554' } },
+            x: { grid: { color: '#2c2554' } }
           }
         }
       });
