@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMWK 1: Public-Key Cryptography & ECDLP on Ethereum Toy Curve</title>
+  <!-- Chart.js for Statistical Lab -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --primary: #38bdf8;
+      --accent: #f43f5e;
+      --success: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 8px; }
+    header p { color: var(--text-muted); font-size: 1rem; }
+    
+    .nav-tabs {
+      display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .nav-tab {
+      padding: 10px 18px; background: transparent; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 0.95rem; font-weight: 600; border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 850px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 12px; }
+    .card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 8px; }
+
+    label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; }
+    input[type="number"], select {
+      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: #0b1120; color: #fff; font-size: 1rem; margin-bottom: 12px;
+    }
+    .btn {
+      padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;
+      background: var(--primary); color: #0f172a; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: #475569; color: #fff; margin-left: 8px; }
+
+    canvas { background: #0b1120; border-radius: 8px; width: 100%; border: 1px solid var(--border); }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+    th, td { padding: 10px; border: 1px solid var(--border); text-align: center; }
+    th { background: #0f172a; color: var(--primary); }
+    tr:nth-child(even) { background: #162032; }
+
+    .badge {
+      display: inline-block; padding: 4px 8px; border-radius: 4px;
+      font-size: 0.8rem; font-weight: bold; background: #334155; color: #38bdf8;
+    }
+    .badge-key { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid var(--primary); }
+    .badge-eth { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+
+    pre, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #0b1120; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem;
+    }
+    .formula-box {
+      background: #0b1120; padding: 12px; border-left: 4px solid var(--primary);
+      margin: 12px 0; border-radius: 4px; font-family: monospace;
+    }
+    .chart-container { position: relative; height: 260px; width: 100%; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Elliptic-Curve Scalar Multiplication (ECDLP)</h1>
+      <p>Toy Model: \(y^2 \equiv x^3 + 7 \pmod{17}\) &mdash; secp256k1 & Ethereum Private \(\to\) Public Key Derivation</p>
+    </header>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('tab-sim')">1. Point Multiplier & Guru Canvas</button>
+      <button class="nav-tab" onclick="switchTab('tab-stats')">2. Statistical Exploration Lab</button>
+      <button class="nav-tab" onclick="switchTab('tab-crypto')">3. Cryptographic Theory & Ethereum Analysis</button>
+    </div>
+
+    <!-- TAB 1: SIMULATOR & CANVAS -->
+    <div id="tab-sim" class="tab-content active">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Parameters & Multiplier</h2>
+          <div class="formula-box">
+            Curve: y² = x³ + 7 (mod 17) [a=0, b=7, p=17]<br>
+            Base Point: G = (1, 5) | Group Order: n = 19
+          </div>
+          
+          <label for="privateKey">Private Key k (Scalar):</label>
+          <input type="number" id="privateKey" value="6" min="1" max="18">
+
+          <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+            <button class="btn" onclick="runCalculation()">Compute Public Key</button>
+            <button class="btn btn-secondary" onclick="stepVisualizer()">Visual Step (+1)</button>
+          </div>
+
+          <div class="card" style="margin-top: 15px; background: #162032;">
+            <h3>Resulting Public Key Q = kG</h3>
+            <p>Calculated Public Point: <span id="pubKeyResult" class="badge badge-key" style="font-size: 1.1rem;">(?, ?)</span></p>
+            <p style="margin-top: 6px;">Uncompressed Hex Representation: <code id="pubKeyHex">04...</code></p>
+            <p style="margin-top: 6px;">Simulated Toy Eth Address: <span id="pubKeyEth" class="badge badge-eth">0x...</span></p>
+          </div>
+
+          <h3 style="margin-top: 20px;">Scalar Steps: G, 2G, ..., kG</h3>
+          <div style="max-height: 250px; overflow-y: auto;">
+            <table id="stepTable">
+              <thead>
+                <tr><th>i</th><th>Point i·G</th><th>Affine (x, y)</th><th>Method</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Guru Visualizer: Torus Lattice & Chord Rule</h2>
+          <canvas id="curveCanvas" width="500" height="500"></canvas>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 10px;">
+            <strong style="color: #38bdf8;">Cyan circles</strong>: All 18 valid points on curve + \(\mathcal{O}\). 
+            <strong style="color: #10b981;">Green</strong>: Base point G. 
+            <strong style="color: #f43f5e;">Red</strong>: Current Target Point Q = kG.
+            <strong style="color: #eab308;">Yellow line</strong>: Chord/Tangent connecting current operation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: STATISTICAL EXPLORATION -->
+    <div id="tab-stats" class="tab-content">
+      <div class="card">
+        <h2>Statistical Distribution & Avalanche Effect Analysis</h2>
+        <p style="color: var(--text-muted);">
+          Examining all 18 non-trivial points generated by \(k \in [1, 18]\) to evaluate uniformity, bit entropy, and correlation.
+        </p>
+        
+        <div class="grid-2" style="margin-top: 15px;">
+          <div>
+            <h3>Coordinate Frequency Distribution</h3>
+            <div class="chart-container">
+              <canvas id="coordDistChart"></canvas>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+              Notice: The coordinates are <strong>not uniformly distributed</strong> across \(\mathbb{Z}_{17}\). Only valid Quadratic Residues exist on the curve!
+            </p>
+          </div>
+
+          <div>
+            <h3>Input Key (k) vs Output Coordinate (x) Correlation</h3>
+            <div class="chart-container">
+              <canvas id="scatterChart"></canvas>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+              Shows algebraic pseudorandom scattering. Discrete log inversion cannot be approximated linearly.
+            </p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px; background: #162032;">
+          <h3>Avalanche-like Behavior Demonstration</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 10px;">
+            Compare private key \(k\) with \(k + 1\) (a 1-unit scalar perturbation):
+          </p>
+          <table id="avalancheTable">
+            <thead>
+              <tr><th>k</th><th>Point kG</th><th>Binary Rep (x || y)</th><th>Hamming Distance from (k-1)G</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: CRYPTOGRAPHIC THEORY -->
+    <div id="tab-crypto" class="tab-content">
+      <div class="card">
+        <h2>Cryptographic Analysis: OWF vs Hash Functions</h2>
+        
+        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="background: #162032; padding: 16px; border-radius: 8px;">
+            <h3 style="color: var(--primary);">Elliptic Curve Multiplication (k &middot; G)</h3>
+            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1;">
+              <li><strong>One-Way Function (OWF):</strong> Easy forward: \(O(\log k)\) via Double-and-Add. Hard backwards: requires solving the ECDLP (\(O(\sqrt{n})\) Pollard-rho).</li>
+              <li><strong>Algebraic Homomorphism:</strong> Preserves structure: \((k_1 + k_2)G = k_1 G + k_2 G\). Crucial for Schnorr signatures, ECDSA, and threshold cryptography.</li>
+              <li><strong>Non-Uniformity:</strong> Outputs are strictly constrained to the curve's abelian group manifold; coordinates are not uniform integers.</li>
+            </ul>
+          </div>
+
+          <div style="background: #162032; padding: 16px; border-radius: 8px;">
+            <h3 style="color: var(--accent);">Cryptographic Hash Functions (Keccak-256)</h3>
+            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1;">
+              <li><strong>Destroys Homomorphism:</strong> Zero algebraic relations remain: \(H(x + y) \neq H(x) + H(y)\).</li>
+              <li><strong>Strict Avalanche Criterion (SAC):</strong> Flipping 1 input bit flips exactly ~50% of the output bits with zero correlation.</li>
+              <li><strong>Uniform Random Oracle:</strong> Output distribution is indistinguishable from a true uniform random bit generator.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+          <h3>Ethereum secp256k1 vs. Our Toy Curve</h3>
+          <table>
+            <thead>
+              <tr><th>Property</th><th>This Homework Toy Curve</th><th>Ethereum secp256k1 Curve</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Field Prime \(p\)</strong></td>
+                <td>\(17\) (5 bits)</td>
+                <td>\(2^{256} - 2^{32} - 977\) (256 bits)</td>
+              </tr>
+              <tr>
+                <td><strong>Equation</strong></td>
+                <td>\(y^2 = x^3 + 7 \pmod{17}\)</td>
+                <td>\(y^2 = x^3 + 7 \pmod{p}\)</td>
+              </tr>
+              <tr>
+                <td><strong>Base Point G</strong></td>
+                <td>\((1, 5)\)</td>
+                <td>Defined standard 256-bit coordinate</td>
+              </tr>
+              <tr>
+                <td><strong>Group Order \(n\)</strong></td>
+                <td>\(19\)</td>
+                <td>\(\approx 1.1579 \times 10^{77}\)</td>
+              </tr>
+              <tr>
+                <td><strong>Ethereum Address Derivation</strong></td>
+                <td>Toy: \(\text{Last 4 hex of }(x^2 + y^2 \pmod{256})\)</td>
+                <td>\(\text{Last 20 bytes of Keccak256}(\text{uncompressed } Q_{x,y})\)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- MATHEMATICAL CORE: TOY CURVE y^2 = x^3 + 7 (mod 17) ---
+    const P = 17;
+    const A = 0;
+    const B = 7;
+    const G = { x: 1, y: 5 };
+    const N = 19; // Group order including point at infinity
+
+    function mod(n, m) { return ((n % m) + m) % m; }
+
+    function modInverse(a, m) {
+      a = mod(a, m);
+      for (let x = 1; x < m; x++) {
+        if ((a * x) % m === 1) return x;
+      }
+      return 1;
+    }
+
+    function pointEqual(p1, p2) {
+      if (!p1 && !p2) return true;
+      if (!p1 || !p2) return false;
+      return p1.x === p2.x && p1.y === p2.y;
+    }
+
+    // Elliptic curve group addition
+    function pointAdd(p1, p2) {
+      if (!p1) return p2; // O + P = P
+      if (!p2) return p1; // P + O = P
+
+      if (p1.x === p2.x && mod(p1.y + p2.y, P) === 0) {
+        return null; // Point at infinity O
+      }
+
+      let lambda;
+      if (pointEqual(p1, p2)) {
+        // Point Doubling
+        const num = mod(3 * p1.x * p1.x + A, P);
+        const den = modInverse(2 * p1.y, P);
+        lambda = mod(num * den, P);
+      } else {
+        // Point Addition
+        const num = mod(p2.y - p1.y, P);
+        const den = modInverse(p2.x - p1.x, P);
+        lambda = mod(num * den, P);
+      }
+
+      const x3 = mod(lambda * lambda - p1.x - p2.x, P);
+      const y3 = mod(lambda * (p1.x - x3) - p1.y, P);
+      return { x: x3, y: y3, lambda: lambda };
+    }
+
+    function scalarMultiply(k, point) {
+      let current = null;
+      const history = [];
+      for (let i = 1; i <= k; i++) {
+        current = pointAdd(current, point);
+        history.push({ step: i, point: current });
+      }
+      return { result: current, history: history };
+    }
+
+    // Find all valid affine points on the curve
+    function getAllCurvePoints() {
+      const points = [];
+      for (let x = 0; x < P; x++) {
+        const rhs = mod(x * x * x + B, P);
+        for (let y = 0; y < P; y++) {
+          if (mod(y * y, P) === rhs) {
+            points.push({ x, y });
+          }
+        }
+      }
+      return points;
+    }
+
+    const ALL_POINTS = getAllCurvePoints();
+
+    // --- APPLICATION LOGIC ---
+    let currentK = 6;
+    let distChart = null;
+    let scatterChartInstance = null;
+
+    function runCalculation() {
+      const kInput = parseInt(document.getElementById('privateKey').value, 10);
+      currentK = isNaN(kInput) ? 6 : Math.max(1, Math.min(18, kInput));
+      document.getElementById('privateKey').value = currentK;
+
+      const { result, history } = scalarMultiply(currentK, G);
+
+      // Render Public Key
+      const pubLabel = result ? `(${result.x}, ${result.y})` : "Point at Infinity (𝒪)";
+      document.getElementById('pubKeyResult').innerText = pubLabel;
+
+      if (result) {
+        const hexX = result.x.toString(16).padStart(2, '0');
+        const hexY = result.y.toString(16).padStart(2, '0');
+        document.getElementById('pubKeyHex').innerText = `04${hexX}${hexY}`;
+        const toyHash = mod((result.x * 31 + result.y * 17), 256).toString(16).padStart(2, '0');
+        document.getElementById('pubKeyEth').innerText = `0x${toyHash}92...fa`;
+      } else {
+        document.getElementById('pubKeyHex').innerText = "N/A (Infinity)";
+        document.getElementById('pubKeyEth').innerText = "0x0000...00";
+      }
+
+      // Render Table
+      const tbody = document.querySelector('#stepTable tbody');
+      tbody.innerHTML = '';
+      history.forEach(h => {
+        const tr = document.createElement('tr');
+        const ptStr = h.point ? `(${h.point.x}, ${h.point.y})` : "𝒪 (Infinity)";
+        tr.innerHTML = `
+          <td><strong>${h.step}G</strong></td>
+          <td>${ptStr}</td>
+          <td>${h.point ? `x=${h.point.x}, y=${h.point.y}` : "None"}</td>
+          <td>${h.step === 1 ? 'Generator' : (h.step % 2 === 0 ? 'Double/Add' : 'Point Addition')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      drawGuruCanvas(result);
+    }
+
+    function stepVisualizer() {
+      currentK = (currentK % 18) + 1;
+      document.getElementById('privateKey').value = currentK;
+      runCalculation();
+    }
+
+    // --- CANVAS VISUALIZATION (GURU LEVEL) ---
+    function drawGuruCanvas(highlightPt) {
+      const canvas = document.getElementById('curveCanvas');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const pad = 40;
+      const scale = (w - 2 * pad) / (P - 1);
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < P; i++) {
+        const pos = pad + i * scale;
+        ctx.beginPath(); ctx.moveTo(pos, pad); ctx.lineTo(pos, h - pad); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad, pos); ctx.lineTo(w - pad, pos); ctx.stroke();
+        
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px monospace';
+        ctx.fillText(i, pos - 3, h - pad + 16);
+        ctx.fillText(P - 1 - i, pad - 22, pad + i * scale + 3);
+      }
+
+      function toScreen(x, y) {
+        return {
+          sx: pad + x * scale,
+          sy: pad + (P - 1 - y) * scale
+        };
+      }
+
+      // Draw all valid points on curve
+      ALL_POINTS.forEach(pt => {
+        const { sx, sy } = toScreen(pt.x, pt.y);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#0284c7';
+        ctx.fill();
+      });
+
+      // Draw Base Point G
+      const sG = toScreen(G.x, G.y);
+      ctx.beginPath();
+      ctx.arc(sG.sx, sG.sy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#10b981';
+      ctx.fill();
+      ctx.fillText("G (1,5)", sG.sx + 10, sG.sy - 8);
+
+      // Draw Highlighted Public Key Q
+      if (highlightPt) {
+        const sQ = toScreen(highlightPt.x, highlightPt.y);
+        ctx.beginPath();
+        ctx.arc(sQ.sx, sQ.sy, 9, 0, Math.PI * 2);
+        ctx.fillStyle = '#f43f5e';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillText(`Q=${currentK}G`, sQ.sx + 10, sQ.sy - 10);
+
+        // Draw geometric chord line between (k-1)G and G
+        if (currentK > 1) {
+          const prevPt = scalarMultiply(currentK - 1, G).result;
+          if (prevPt) {
+            const sPrev = toScreen(prevPt.x, prevPt.y);
+            ctx.beginPath();
+            ctx.moveTo(sPrev.sx, sPrev.sy);
+            ctx.lineTo(sQ.sx, sQ.sy);
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+    }
+
+    // --- TAB 2: STATISTICAL EXPLORATION LAB ---
+    function initStats() {
+      const xCounts = Array(P).fill(0);
+      const yCounts = Array(P).fill(0);
+      const scatterData = [];
+      const avalancheTbody = document.querySelector('#avalancheTable tbody');
+      avalancheTbody.innerHTML = '';
+
+      let prevPoint = null;
+
+      for (let k = 1; k <= 18; k++) {
+        const pt = scalarMultiply(k, G).result;
+        if (pt) {
+          xCounts[pt.x]++;
+          yCounts[pt.y]++;
+          scatterData.push({ x: k, y: pt.x });
+
+          // Avalanche calculation: Hamming distance between binary representation of coordinates
+          const binStr = (pt.x.toString(2).padStart(5, '0')) + (pt.y.toString(2).padStart(5, '0'));
+          let hDist = "N/A (Origin)";
+          if (prevPoint) {
+            const prevBin = (prevPoint.x.toString(2).padStart(5, '0')) + (prevPoint.y.toString(2).padStart(5, '0'));
+            let diff = 0;
+            for (let b = 0; b < 10; b++) {
+              if (binStr[b] !== prevBin[b]) diff++;
+            }
+            hDist = `${diff} / 10 bits (${(diff / 10 * 100).toFixed(0)}%)`;
+          }
+          prevPoint = pt;
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>k = ${k}</strong></td>
+            <td>(${pt.x}, ${pt.y})</td>
+            <td><code>${binStr.slice(0, 5)} || ${binStr.slice(5)}</code></td>
+            <td><span class="badge ${hDist.includes('N/A') ? '' : 'badge-key'}">${hDist}</span></td>
+          `;
+          avalancheTbody.appendChild(row);
+        }
+      }
+
+      // 1. Bar Chart: Coordinate Frequencies
+      if (distChart) distChart.destroy();
+      const ctxDist = document.getElementById('coordDistChart').getContext('2d');
+      distChart = new Chart(ctxDist, {
+        type: 'bar',
+        data: {
+          labels: Array.from({length: P}, (_, i) => i),
+          datasets: [
+            { label: 'x-coord count', data: xCounts, backgroundColor: '#38bdf8' },
+            { label: 'y-coord count', data: yCounts, backgroundColor: '#f43f5e' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#334155' } },
+            x: { grid: { color: '#334155' } }
+          }
+        }
+      });
+
+      // 2. Scatter Plot: Input k vs Output x
+      if (scatterChartInstance) scatterChartInstance.destroy();
+      const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+      scatterChartInstance = new Chart(ctxScatter, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Scalar k vs Point x-coordinate',
+            data: scatterData,
+            backgroundColor: '#10b981',
+            pointRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'Private Key k', color: '#94a3b8' }, min: 1, max: 18, grid: { color: '#334155' } },
+            y: { title: { display: true, text: 'Affine x', color: '#94a3b8' }, min: 0, max: 17, grid: { color: '#334155' } }
+          }
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'tab-stats') {
+        initStats();
+      }
+    }
+
+    // Init
+    window.onload = () => {
+      runCalculation();
+    };
+  </script>
+</body>
+</html>
