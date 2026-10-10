@@ -14,6 +14,7 @@
       --primary: #38bdf8;
       --accent: #f43f5e;
       --success: #10b981;
+      --warning: #fbbf24;
       --text: #f8fafc;
       --text-muted: #94a3b8;
     }
@@ -26,10 +27,36 @@
       padding: 24px;
     }
     .container { max-width: 1200px; margin: 0 auto; }
-    header { text-align: center; margin-bottom: 28px; }
-    header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 8px; }
-    header p { color: var(--text-muted); font-size: 1rem; }
-    
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 { font-size: 2.1rem; color: var(--primary); margin-bottom: 8px; font-weight: 700; }
+    header p { color: var(--text-muted); font-size: 1.05rem; }
+
+    /* Overview Banner */
+    .overview-banner {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .overview-banner h2 {
+      font-size: 1.25rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .overview-banner p {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+    .overview-banner p:last-child {
+      margin-bottom: 0;
+    }
+
     .nav-tabs {
       display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);
       flex-wrap: wrap;
@@ -87,7 +114,7 @@
     }
     .formula-box {
       background: #0b1120; padding: 12px; border-left: 4px solid var(--primary);
-      margin: 12px 0; border-radius: 4px; font-family: monospace;
+      margin: 12px 0; border-radius: 4px; font-family: monospace; line-height: 1.6;
     }
     .chart-container { position: relative; height: 260px; width: 100%; margin-top: 15px; }
   </style>
@@ -96,8 +123,32 @@
   <div class="container">
     <header>
       <h1>Elliptic-Curve Scalar Multiplication (ECDLP)</h1>
-      <p>Toy Model: y² ≡ x³ + 7 (mod 17) &mdash; secp256k1 &amp; Ethereum Private &rarr; Public Key Derivation</p>
+      <p>Toy Model: y² ≡ x³ + 7 (mod 17) &mdash; Ethereum secp256k1 Key Derivation Prototype</p>
     </header>
+
+    <!-- EXPLANATION BANNER (IN ENGLISH) -->
+    <div class="overview-banner">
+      <h2>&#128218; Theoretical Overview &amp; Homework Context</h2>
+      <p>
+        In modern blockchain architectures such as <strong>Ethereum</strong>, accounts and digital identities are governed by 
+        <strong>Public-Key Cryptography</strong> based on Elliptic Curves. Ethereum specifically utilizes the <code>secp256k1</code> standard curve: 
+        <code>y² ≡ x³ + 7 (mod p)</code>, where <em>p</em> is a massive 256-bit prime number.
+      </p>
+      <p>
+        <strong>How Key Derivation Works:</strong> A user picks a random secret integer <em>k</em> called the <strong>Private Key</strong>. 
+        The corresponding <strong>Public Key</strong> is computed as the geometric point multiplication <code>Q = k · G</code>, 
+        where <em>G</em> is a globally agreed generator (base point). 
+        While computing <code>Q = k · G</code> is computationally trivial via modular arithmetic (using the <em>Double-and-Add</em> algorithm in O(log k) operations), 
+        reversing this calculation &mdash; determining the secret scalar <em>k</em> given only <em>Q</em> and <em>G</em> &mdash; is known as the 
+        <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong>. Solving the ECDLP takes infeasible exponential/sub-exponential time 
+        (O(&radic;n) steps), making scalar multiplication an algebraic <strong>One-Way Function (OWF)</strong>.
+      </p>
+      <p>
+        <strong>Our Toy Model:</strong> To visualize every discrete point and understand the group law arithmetic without handling 256-bit astronomical numbers, 
+        this application implements the exact secp256k1 parameters scaled down to the finite field <code>ℤ₁₇</code> (p = 17, a = 0, b = 7), with base point 
+        <code>G = (1, 5)</code> and group order <code>n = 19</code> (including the neutral point at infinity 𝒪).
+      </p>
+    </div>
 
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="switchTab('tab-sim')">1. Point Multiplier &amp; Guru Canvas</button>
@@ -108,24 +159,15 @@
     <!-- TAB 1: SIMULATOR & CANVAS -->
     <div id="tab-sim" class="tab-content active">
       <div class="grid-2">
-        <!-- Brief Cryptographic Explanation -->
-        <div class="card" style="margin-bottom: 20px;">
-          <h2>Overview: Private Key &rarr; Public Key Derivation</h2>
-          <p style="color: var(--text-muted); font-size: 0.95rem;">
-            In Ethereum and elliptic-curve cryptography, a <strong>private key</strong> is simply a secretly chosen integer <code>k</code>. The corresponding <strong>public key</strong> is a point <code>Q = k &middot; G</code> on the curve, computed by performing scalar multiplication: adding the standardized base point <code>G</code> to itself <code>k</code> times using the curve's chord-and-tangent group law.
-          </p>
-          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 8px;">
-            This operation serves as an algebraic <strong>one-way function</strong>: computing <code>Q = k &middot; G</code> in the forward direction is deterministic and fast (via Double-and-Add), but determining the secret scalar <code>k</code> from the known points <code>Q</code> and <code>G</code> is computationally infeasible. This mathematical hardness is the <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong>.
-          </p>
-        </div>
         <div class="card">
           <h2>Parameters &amp; Multiplier</h2>
           <div class="formula-box">
-            Curve: y² ≡ x³ + 7 (mod 17) [a=0, b=7, p=17]<br>
-            Base Point: G = (1, 5) | Group Order: n = 19
+            Equation: y² ≡ x³ + 7 (mod 17) [a = 0, b = 7, p = 17]<br>
+            Base Point: G = (1, 5)<br>
+            Finite Cyclic Group Order: n = 19 (including 𝒪)
           </div>
           
-          <label for="privateKey">Private Key k (Scalar):</label>
+          <label for="privateKey">Private Key k (Scalar ∈ [1, 18]):</label>
           <input type="number" id="privateKey" value="6" min="1" max="18">
 
           <div style="display: flex; gap: 8px; margin-bottom: 14px;">
@@ -134,9 +176,9 @@
           </div>
 
           <div class="card" style="margin-top: 15px; background: #162032;">
-            <h3>Resulting Public Key Q = kG</h3>
+            <h3>Resulting Public Key Q = k · G</h3>
             <p>Calculated Public Point: <span id="pubKeyResult" class="badge badge-key" style="font-size: 1.1rem;">(?, ?)</span></p>
-            <p style="margin-top: 6px;">Uncompressed Hex Representation: <code id="pubKeyHex">04...</code></p>
+            <p style="margin-top: 6px;">Uncompressed Hex (04 || x || y): <code id="pubKeyHex">04...</code></p>
             <p style="margin-top: 6px;">Simulated Toy Eth Address: <span id="pubKeyEth" class="badge badge-eth">0x...</span></p>
           </div>
 
@@ -155,10 +197,10 @@
           <h2>Guru Visualizer: Torus Lattice &amp; Chord Rule</h2>
           <canvas id="curveCanvas" width="500" height="500"></canvas>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 10px;">
-            <strong style="color: #38bdf8;">Cyan circles</strong>: All 18 valid points on curve + 𝒪 (Point at Infinity).<br>
-            <strong style="color: #10b981;">Green</strong>: Base point G.<br>
-            <strong style="color: #f43f5e;">Red</strong>: Current Target Point Q = kG.<br>
-            <strong style="color: #eab308;">Yellow line</strong>: Chord/Tangent connecting current operation.
+            <strong style="color: #38bdf8;">Cyan circles</strong>: All 18 valid affine points on curve + 𝒪 (Point at Infinity).<br>
+            <strong style="color: #10b981;">Green</strong>: Base point G = (1, 5).<br>
+            <strong style="color: #f43f5e;">Red</strong>: Target Public Key point Q = kG.<br>
+            <strong style="color: #fbbf24;">Yellow dashed line</strong>: Chord connecting previous step (k-1)G and target Q.
           </p>
         </div>
       </div>
@@ -167,9 +209,9 @@
     <!-- TAB 2: STATISTICAL EXPLORATION -->
     <div id="tab-stats" class="tab-content">
       <div class="card">
-        <h2>Statistical Distribution &amp; Avalanche Effect Analysis</h2>
+        <h2>Statistical Exploration: Group Manifold &amp; Avalanche Effect</h2>
         <p style="color: var(--text-muted);">
-          Examining all 18 non-trivial points generated by k ∈ [1, 18] to evaluate uniformity, bit entropy, and correlation.
+          Examining all 18 non-trivial points generated by k ∈ [1, 18] to evaluate coordinate distribution, linear correlations, and bit flipping.
         </p>
         
         <div class="grid-2" style="margin-top: 15px;">
@@ -179,7 +221,7 @@
               <canvas id="coordDistChart"></canvas>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              Notice: The coordinates are <strong>not uniformly distributed</strong> across ℤ₁₇. Only valid Quadratic Residues exist on the curve!
+              <strong>Finding:</strong> Coordinates are <em>not uniformly distributed</em> across ℤ₁₇. An elliptic curve point only exists when <code>x³ + 7</code> is a <strong>Quadratic Residue</strong> modulo 17.
             </p>
           </div>
 
@@ -189,7 +231,7 @@
               <canvas id="scatterChart"></canvas>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              Shows algebraic pseudorandom scattering. Discrete log inversion cannot be approximated linearly.
+              <strong>Finding:</strong> The points are pseudorandomly scattered. There is no simple linear or monotonic function connecting the private scalar <em>k</em> with the output coordinate.
             </p>
           </div>
         </div>
@@ -197,11 +239,11 @@
         <div class="card" style="margin-top: 20px; background: #162032;">
           <h3>Avalanche-like Behavior Demonstration</h3>
           <p style="font-size: 0.9rem; margin-bottom: 10px;">
-            Compare private key <em>k</em> with <em>k + 1</em> (a 1-unit scalar perturbation):
+            Measuring coordinate Hamming distance when the private key increments by 1 (k &rarr; k + 1):
           </p>
           <table id="avalancheTable">
             <thead>
-              <tr><th>k</th><th>Point kG</th><th>Binary Rep (x || y)</th><th>Hamming Distance from (k-1)G</th></tr>
+              <tr><th>k</th><th>Point kG</th><th>Binary Rep (5-bit x || 5-bit y)</th><th>Hamming Distance from (k-1)G</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -212,33 +254,33 @@
     <!-- TAB 3: CRYPTOGRAPHIC THEORY -->
     <div id="tab-crypto" class="tab-content">
       <div class="card">
-        <h2>Cryptographic Analysis: OWF vs Hash Functions</h2>
+        <h2>Cryptographic Analysis: One-Way Functions vs Hash Functions</h2>
         
         <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div style="background: #162032; padding: 16px; border-radius: 8px;">
-            <h3 style="color: var(--primary);">Elliptic Curve Multiplication (k &middot; G)</h3>
-            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1;">
-              <li><strong>One-Way Function (OWF):</strong> Easy forward: O(log k) via Double-and-Add. Hard backwards: requires solving the ECDLP (O(√n) Pollard-rho).</li>
-              <li><strong>Algebraic Homomorphism:</strong> Preserves group structure: (k₁ + k₂)G = k₁G + k₂G. Crucial for Schnorr signatures, ECDSA, and threshold cryptography.</li>
-              <li><strong>Non-Uniformity:</strong> Outputs are strictly constrained to the curve's abelian group manifold; coordinates are not uniform integers.</li>
+          <div style="background: #162032; padding: 18px; border-radius: 8px;">
+            <h3 style="color: var(--primary);">&#128274; Elliptic Curve Scalar Multiplication (k · G)</h3>
+            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1; line-height: 1.7;">
+              <li><strong>One-Way Function (OWF):</strong> Easy forward: O(log k) using the Double-and-Add algorithm. Hard in reverse: requires solving the ECDLP, which takes O(&radic;n) steps using Pollard's rho algorithm.</li>
+              <li><strong>Preserves Group Homomorphism:</strong> (k₁ + k₂)G = k₁G + k₂G. This algebraic linearity is vital for Schnorr signatures, ECDSA, ring signatures, and zero-knowledge proofs.</li>
+              <li><strong>Non-Uniformity:</strong> The points are strictly constrained to the 1-dimensional elliptic curve abelian group. They do not fill the 2D space ℤ_p &times; ℤ_p uniformly.</li>
             </ul>
           </div>
 
-          <div style="background: #162032; padding: 16px; border-radius: 8px;">
-            <h3 style="color: var(--accent);">Cryptographic Hash Functions (Keccak-256)</h3>
-            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1;">
-              <li><strong>Destroys Homomorphism:</strong> Zero algebraic relations remain: H(x + y) ≠ H(x) + H(y).</li>
-              <li><strong>Strict Avalanche Criterion (SAC):</strong> Flipping 1 input bit flips exactly ~50% of the output bits with zero correlation.</li>
-              <li><strong>Uniform Random Oracle:</strong> Output distribution is indistinguishable from a true uniform random bit generator.</li>
+          <div style="background: #162032; padding: 18px; border-radius: 8px;">
+            <h3 style="color: var(--accent);">&#9889; Cryptographic Hash Functions (Keccak-256)</h3>
+            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1; line-height: 1.7;">
+              <li><strong>Destroys Homomorphism:</strong> Hash functions explicitly destroy algebraic structure: H(x + y) &ne; H(x) + H(y).</li>
+              <li><strong>Strict Avalanche Criterion (SAC):</strong> Flipping a single bit of the input flips approximately 50% of the output bits with zero correlation.</li>
+              <li><strong>Uniform Random Oracle:</strong> Output bits are statistically indistinguishable from uniform white noise across the entire 256-bit digest space.</li>
             </ul>
           </div>
         </div>
 
         <div class="card" style="margin-top: 20px;">
-          <h3>Ethereum secp256k1 vs. Our Toy Curve</h3>
+          <h3>Parameter Comparison: Toy Curve vs Production Ethereum</h3>
           <table>
             <thead>
-              <tr><th>Property</th><th>This Homework Toy Curve</th><th>Ethereum secp256k1 Curve</th></tr>
+              <tr><th>Property</th><th>Homework Toy Curve</th><th>Ethereum secp256k1 Curve</th></tr>
             </thead>
             <tbody>
               <tr>
@@ -254,17 +296,17 @@
               <tr>
                 <td><strong>Base Point G</strong></td>
                 <td>(1, 5)</td>
-                <td>Defined standard 256-bit coordinate</td>
+                <td>Standard uncompressed 65-byte generator</td>
               </tr>
               <tr>
-                <td><strong>Group Order n</strong></td>
+                <td><strong>Cyclic Group Order n</strong></td>
                 <td>19</td>
                 <td>&asymp; 1.1579 &times; 10<sup>77</sup></td>
               </tr>
               <tr>
-                <td><strong>Ethereum Address Derivation</strong></td>
-                <td>Toy: Last 4 hex of (x² + y² mod 256)</td>
-                <td>Last 20 bytes of Keccak256(uncompressed Q<sub>x,y</sub>)</td>
+                <td><strong>Address Derivation Pipeline</strong></td>
+                <td>Toy: <code>0x || (x² + y² mod 256)</code></td>
+                <td>Production: <code>Last 20 bytes of Keccak256(Q_uncompressed)</code></td>
               </tr>
             </tbody>
           </table>
@@ -283,6 +325,7 @@
 
     function mod(n, m) { return ((n % m) + m) % m; }
 
+    // Extended Euclidean Algorithm for Modular Multiplicative Inverse
     function modInverse(a, m) {
       a = mod(a, m);
       for (let x = 1; x < m; x++) {
@@ -308,12 +351,12 @@
 
       let lambda;
       if (pointEqual(p1, p2)) {
-        // Point Doubling
+        // Point Doubling: lambda = (3*x1^2 + a) / (2*y1) mod P
         const num = mod(3 * p1.x * p1.x + A, P);
         const den = modInverse(2 * p1.y, P);
         lambda = mod(num * den, P);
       } else {
-        // Point Addition
+        // Point Addition: lambda = (y2 - y1) / (x2 - x1) mod P
         const num = mod(p2.y - p1.y, P);
         const den = modInverse(p2.x - p1.x, P);
         lambda = mod(num * den, P);
@@ -387,7 +430,7 @@
           <td><strong>${h.step}G</strong></td>
           <td>${ptStr}</td>
           <td>${h.point ? `x=${h.point.x}, y=${h.point.y}` : "None"}</td>
-          <td>${h.step === 1 ? 'Generator' : (h.step % 2 === 0 ? 'Double/Add' : 'Point Addition')}</td>
+          <td>${h.step === 1 ? 'Generator' : (h.step % 2 === 0 ? 'Point Doubling / Addition' : 'Point Addition')}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -412,7 +455,7 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // Grid
+      // Draw Grid Lines & Axis Numbers
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let i = 0; i < P; i++) {
@@ -456,4 +499,130 @@
         ctx.beginPath();
         ctx.arc(sQ.sx, sQ.sy, 9, 0, Math.PI * 2);
         ctx.fillStyle = '#f43f5e';
-        ctx
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillText(`Q = ${currentK}G`, sQ.sx + 10, sQ.sy - 10);
+
+        // Draw geometric chord line between (k-1)G and target
+        if (currentK > 1) {
+          const prevPt = scalarMultiply(currentK - 1, G).result;
+          if (prevPt) {
+            const sPrev = toScreen(prevPt.x, prevPt.y);
+            ctx.beginPath();
+            ctx.moveTo(sPrev.sx, sPrev.sy);
+            ctx.lineTo(sQ.sx, sQ.sy);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+    }
+
+    // --- TAB 2: STATISTICAL EXPLORATION LAB ---
+    function initStats() {
+      const xCounts = Array(P).fill(0);
+      const yCounts = Array(P).fill(0);
+      const scatterData = [];
+      const avalancheTbody = document.querySelector('#avalancheTable tbody');
+      avalancheTbody.innerHTML = '';
+
+      let prevPoint = null;
+
+      for (let k = 1; k <= 18; k++) {
+        const pt = scalarMultiply(k, G).result;
+        if (pt) {
+          xCounts[pt.x]++;
+          yCounts[pt.y]++;
+          scatterData.push({ x: k, y: pt.x });
+
+          // Avalanche calculation: Hamming distance between binary representation of coordinates
+          const binStr = (pt.x.toString(2).padStart(5, '0')) + (pt.y.toString(2).padStart(5, '0'));
+          let hDist = "N/A (Origin)";
+          if (prevPoint) {
+            const prevBin = (prevPoint.x.toString(2).padStart(5, '0')) + (prevPoint.y.toString(2).padStart(5, '0'));
+            let diff = 0;
+            for (let b = 0; b < 10; b++) {
+              if (binStr[b] !== prevBin[b]) diff++;
+            }
+            hDist = `${diff} / 10 bits (${(diff / 10 * 100).toFixed(0)}%)`;
+          }
+          prevPoint = pt;
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>k = ${k}</strong></td>
+            <td>(${pt.x}, ${pt.y})</td>
+            <td><code>${binStr.slice(0, 5)} || ${binStr.slice(5)}</code></td>
+            <td><span class="badge ${hDist.includes('N/A') ? '' : 'badge-key'}">${hDist}</span></td>
+          `;
+          avalancheTbody.appendChild(row);
+        }
+      }
+
+      // 1. Bar Chart: Coordinate Frequencies
+      if (distChart) distChart.destroy();
+      const ctxDist = document.getElementById('coordDistChart').getContext('2d');
+      distChart = new Chart(ctxDist, {
+        type: 'bar',
+        data: {
+          labels: Array.from({length: P}, (_, i) => i),
+          datasets: [
+            { label: 'x-coord frequency', data: xCounts, backgroundColor: '#38bdf8' },
+            { label: 'y-coord frequency', data: yCounts, backgroundColor: '#f43f5e' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#334155' } },
+            x: { grid: { color: '#334155' } }
+          }
+        }
+      });
+
+      // 2. Scatter Plot: Input k vs Output x
+      if (scatterChartInstance) scatterChartInstance.destroy();
+      const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+      scatterChartInstance = new Chart(ctxScatter, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Scalar k vs Output x-coordinate',
+            data: scatterData,
+            backgroundColor: '#10b981',
+            pointRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'Private Key k', color: '#94a3b8' }, min: 1, max: 18, grid: { color: '#334155' } },
+            y: { title: { display: true, text: 'Affine x', color: '#94a3b8' }, min: 0, max: 17, grid: { color: '#334155' } }
+          }
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'tab-stats') {
+        initStats();
+      }
+    }
+
+    // Init
+    window.onload = () => {
+      runCalculation();
+    };
+  </script>
+</body>
+</html>
