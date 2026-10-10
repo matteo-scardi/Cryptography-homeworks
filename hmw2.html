@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HMWK 2: From Wallet Seed to Ethereum Address</title>
@@ -8,19 +6,23 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #1a153b;
-      --card-bg: #15122b;
-      --card-alt: #1c1838;
-      --border: #3b3273;
-      --primary: #a78bfa;
-      --primary-hover: #8b5cf6;
-      --accent: #2dd4bf;
-      --warning: #fbbf24;
-      --danger: #f43f5e;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      /* Palette personalizzata */
+      --bg: #471F24;           /* Espresso */
+      --card-bg: #544343;      /* Mauve Bark */
+      --card-alt: #463737;     /* Mauve Bark scuro */
+      --border: #626d58;       /* Ebony */
+      --primary: #bdc667;      /* Golden Sand */
+      --primary-hover: #cfd87a;
+      --accent: #77966d;       /* Sage Green */
+      --accent-light: #94b08b;
+      --warning: #eab308;
+      --danger: #ef4444;
+      --text: #fdfbf7;
+      --text-muted: #d6cfc7;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { 
+      box-sizing: border-box; margin: 0; padding: 0; 
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
@@ -35,7 +37,7 @@
 
     /* Theoretical Overview Banner */
     .overview-banner {
-      background: linear-gradient(135deg, #15122b 0%, #0c0a1d 100%);
+      background: linear-gradient(135deg, var(--card-bg) 0%, #3e1e22 100%);
       border: 1px solid var(--border);
       border-left: 5px solid var(--primary);
       border-radius: 10px;
@@ -50,7 +52,7 @@
       align-items: center;
       gap: 8px;
     }
-    .overview-banner p { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 10px; }
+    .overview-banner p { font-size: 0.95rem; color: #ede8e1; margin-bottom: 10px; }
     .overview-banner p:last-child { margin-bottom: 0; }
 
     /* Single-line Navigation Tabs */
@@ -86,8 +88,12 @@
     @media (max-width: 850px) { .grid-2 { grid-template-columns: 1fr; } }
 
     .card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 22px; margin-bottom: 20px;
+      background: var(--card-bg); 
+      border: 1px solid var(--border);
+      border-radius: 10px; 
+      padding: 22px; 
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 12px; }
     .card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 8px; }
@@ -95,38 +101,46 @@
     label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; }
     input[type="text"], select {
       width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: #080614; color: #fff; font-size: 0.95rem; margin-bottom: 12px;
+      background: #381a1d; color: #fff; font-size: 0.95rem; margin-bottom: 12px;
+    }
+    input[type="text"]:focus, select:focus {
+      outline: 2px solid var(--primary);
     }
     .btn {
       padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;
-      background: var(--primary); color: #0c0a1d; transition: all 0.2s;
+      background: var(--primary); color: #35191c; transition: all 0.2s;
     }
-    .btn:hover { background: var(--primary-hover); color: #fff; }
-    .btn-secondary { background: #373059; color: #fff; margin-left: 8px; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--border); color: #fff; margin-left: 8px; }
+    .btn-secondary:hover { background: #737f68; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
     th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
-    th { background: #080614; color: var(--primary); }
-    tr:nth-child(even) { background: #1c1838; }
+    th { background: #381a1d; color: var(--primary); }
+    tr:nth-child(even) { background: var(--card-alt); }
 
     .badge {
       display: inline-block; padding: 4px 8px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: bold; background: #2c2554; color: var(--primary);
+      font-size: 0.8rem; font-weight: bold; background: var(--border); color: var(--primary);
     }
-    .badge-accent { background: rgba(45, 212, 191, 0.15); color: var(--accent); border: 1px solid var(--accent); }
-    .badge-warning { background: rgba(251, 191, 36, 0.15); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-accent { 
+      background: rgba(119, 150, 109, 0.25); 
+      color: #d8f3cd; 
+      border: 1px solid var(--accent); 
+    }
+    .badge-warning { background: rgba(234, 179, 8, 0.15); color: var(--warning); border: 1px solid var(--warning); }
 
     pre, code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      background: #080614; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
-      word-break: break-all;
+      background: #381a1d; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
+      word-break: break-all; color: var(--primary);
     }
     .flow-step {
-      background: #1c1838; border-left: 4px solid var(--primary);
+      background: var(--card-alt); border-left: 4px solid var(--primary);
       padding: 14px; margin-bottom: 14px; border-radius: 6px;
     }
     .flow-step h4 { color: var(--primary); margin-bottom: 6px; font-size: 1rem; }
-    .flow-step p { font-size: 0.88rem; color: #cbd5e1; margin-bottom: 6px; }
+    .flow-step p { font-size: 0.88rem; color: #ede8e1; margin-bottom: 6px; }
     .chart-container { position: relative; height: 260px; width: 100%; margin-top: 15px; }
 
     .timeline {
@@ -135,27 +149,25 @@
     .timeline-item { position: relative; margin-bottom: 20px; }
     .timeline-item::before {
       content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px;
-      border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
+      border-radius: 50%; background: var(--accent-light); border: 2px solid var(--bg);
     }
     .timeline-date { font-weight: bold; color: var(--primary); font-size: 0.9rem; }
     .timeline-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; }
-    .timeline-desc { font-size: 0.9rem; color: #94a3b8; }
-  </style>
-</head>
-<body>
+    .timeline-desc { font-size: 0.9rem; color: var(--text-muted); }
+  </style></head><body>
   <div class="container">
     <header>
       <h1>From Wallet Seed to Ethereum Address</h1>
       <p>Cryptographic Pipeline: Hashing, Key Derivation, Elliptic Curves &amp; Checksums</p>
     </header>
 
-    <!-- THEORETICAL OVERVIEW BANNER (ENGLISH) -->
+    <!-- THEORETICAL OVERVIEW BANNER -->
     <div class="overview-banner">
       <h2>&#128218; Theoretical Overview &amp; Wallet Pipeline Context</h2>
       <p>
         In modern cryptocurrency wallets (such as <strong>MetaMask, Rabby, Rainbow, and Exodus</strong>), user authentication and account safety do not rely on memorizing raw 256-bit hexadecimal keys. Instead, wallets employ a standardized multi-layered cryptographic pipeline composed of complementary primitives:
       </p>
-      <p style="font-family: monospace; background: #080614; padding: 10px; border-radius: 6px; color: #a78bfa;">
+      <p style="font-family: monospace; background: #381a1d; padding: 10px; border-radius: 6px; color: var(--primary);">
         Entropy (128-bit) &rarr; BIP-39 Mnemonic (12 words) &rarr; PBKDF2 Seed (512-bit) &rarr; BIP-32/BIP-44 HD Child Key (256-bit Private Key) &rarr; secp256k1 Point Multiplication &rarr; Public Key (64-byte uncompressed) &rarr; Keccak-256 Hash &rarr; Truncate last 20 bytes &rarr; EIP-55 Mixed-Case Checksummed Address
       </p>
       <p>
@@ -190,7 +202,7 @@
           <label for="derivationPath">BIP-44 Standard Derivation Path:</label>
           <input type="text" id="derivationPath" value="m/44'/60'/0'/0/0" readonly style="opacity: 0.85;">
 
-          <div class="card" style="margin-top: 15px; background: #1c1838;">
+          <div class="card" style="margin-top: 15px; background: var(--card-alt);">
             <h3>Final Checksummed Address (EIP-55)</h3>
             <p style="margin-top: 6px;"><span id="finalAddress" class="badge badge-accent" style="font-size: 1.15rem; word-break: break-all;">0x...</span></p>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
@@ -260,7 +272,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top: 20px; background: #1c1838;">
+        <div class="card" style="margin-top: 20px; background: var(--card-alt);">
           <h3>Strict Avalanche Criterion (SAC) Live Test</h3>
           <p style="font-size: 0.9rem; margin-bottom: 10px;">
             We alter exactly <strong>1 single character</strong> in the seed and measure the Hamming Distance (percentage of flipped output bits):
@@ -271,7 +283,7 @@
             </thead>
             <tbody id="avalancheBody"></tbody>
           </table>
-          <p style="font-size: 0.85rem; color: var(--accent); margin-top: 8px;">
+          <p style="font-size: 0.85rem; color: var(--primary); margin-top: 8px;">
             &#10004; Because PBKDF2, HMAC-SHA512, and Keccak-256 satisfy the Strict Avalanche Criterion, approximately 50% of the bits flip at each step.
           </p>
         </div>
@@ -324,12 +336,12 @@
           </tbody>
         </table>
 
-        <div class="card" style="margin-top: 20px; background: #1c1838;">
+        <div class="card" style="margin-top: 20px; background: var(--card-alt);">
           <h3>Orthogonality of Security Properties</h3>
-          <p style="font-size: 0.95rem; color: #cbd5e1;">
+          <p style="font-size: 0.95rem; color: #ede8e1;">
             A secure wallet requires <strong>three mutually orthogonal guarantees</strong>:
           </p>
-          <ul style="margin-left: 20px; margin-top: 8px; font-size: 0.9rem; color: #cbd5e1; line-height: 1.7;">
+          <ul style="margin-left: 20px; margin-top: 8px; font-size: 0.9rem; color: #ede8e1; line-height: 1.7;">
             <li><strong>Authenticity &amp; Integrity:</strong> Provided solely by secp256k1 ECDSA signatures (only the owner of <em>k</em> can sign transactions).</li>
             <li><strong>Preimage &amp; Quantum Resistance:</strong> Keccak-256 hides the public key until an address makes its first outgoing transaction, creating a layer of defense against hypothetical Shor's algorithm attacks.</li>
             <li><strong>Typographical Safety:</strong> EIP-55 catches human transcription errors with an error detection rate of over 99.998% through capitalizing letters whose corresponding Keccak hash nibble is &ge; 8.</li>
@@ -380,12 +392,12 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top: 25px; background: #1c1838;">
-          <h3 style="color: var(--warning);">&#9888; Technical Distinction: Ethereum Keccak-256 vs. NIST SHA3-256</h3>
-          <p style="font-size: 0.95rem; color: #cbd5e1; margin-top: 8px;">
+        <div class="card" style="margin-top: 25px; background: var(--card-alt);">
+          <h3 style="color: var(--primary);">&#9888; Technical Distinction: Ethereum Keccak-256 vs. NIST SHA3-256</h3>
+          <p style="font-size: 0.95rem; color: #ede8e1; margin-top: 8px;">
             In late 2014, when Ethereum was being finalized, the NIST SHA-3 competition had chosen Keccak, but the formal FIPS 202 standard had not yet been finalized.
           </p>
-          <ul style="margin-left: 20px; margin-top: 8px; font-size: 0.9rem; color: #cbd5e1; line-height: 1.7;">
+          <ul style="margin-left: 20px; margin-top: 8px; font-size: 0.9rem; color: #ede8e1; line-height: 1.7;">
             <li><strong>Padding Difference:</strong> Original Keccak (used by Ethereum) appends padding delimiter <code>0x01</code> (bits <code>01</code>). In the final 2015 FIPS 202 standard, NIST added domain separation and changed the delimiter to <code>0x06</code> (bits <code>0110</code>).</li>
             <li><strong>Resulting Incompatibility:</strong> <code>Keccak-256("") &ne; SHA3-256("")</code>. Ethereum stayed with the original Keccak-256 to ensure backward compatibility across all deployed contracts and genesis transactions.</li>
           </ul>
