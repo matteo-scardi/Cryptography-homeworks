@@ -3,22 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMWK 1: Public-Key Cryptography & ECDLP on Ethereum Toy Curve</title>
-  <!-- Chart.js for Statistical Lab -->
+  <title>HMWK 1: Cryptographic Hash Functions &amp; Statistical Properties</title>
+  <!-- Chart.js for Statistical & Frequency Visualizations -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --primary: #38bdf8;
-      --accent: #f43f5e;
-      --success: #10b981;
-      --warning: #fbbf24;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      /* Palette Chiara: Sfondo Bianco e Tonalità Bordeaux */
+      --bg: #ffffff;
+      --card-bg: #fffafb;
+      --card-alt: #f8f1f3;
+      --border: #e2cbd1;
+      --primary: #800020;       /* Bordeaux classico */
+      --primary-hover: #5c0017;
+      --accent: #9e2a4b;        /* Bordeaux/Rosewood luminoso */
+      --accent-light: #fbebf0;  /* Bordeaux chiarissimo per box e badge */
+      --warning: #d97706;
+      --danger: #dc2626;
+      --text: #1a0f12;          /* Testo scuro ad alto contrasto */
+      --text-muted: #5e4a50;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { 
+      box-sizing: border-box; margin: 0; padding: 0; 
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
@@ -26,18 +32,18 @@
       line-height: 1.6;
       padding: 24px;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1240px; margin: 0 auto; }
     header { text-align: center; margin-bottom: 24px; }
     header h1 { font-size: 2.1rem; color: var(--primary); margin-bottom: 8px; font-weight: 700; }
     header p { color: var(--text-muted); font-size: 1.05rem; }
 
-    /* Overview Banner */
+    /* Theoretical Overview Banner */
     .overview-banner {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: linear-gradient(135deg, var(--card-bg) 0%, var(--accent-light) 100%);
       border: 1px solid var(--border);
       border-left: 5px solid var(--primary);
       border-radius: 10px;
-      padding: 20px 24px;
+      padding: 22px 26px;
       margin-bottom: 24px;
     }
     .overview-banner h2 {
@@ -48,25 +54,33 @@
       align-items: center;
       gap: 8px;
     }
-    .overview-banner p {
-      font-size: 0.95rem;
-      color: #cbd5e1;
-      margin-bottom: 10px;
-    }
-    .overview-banner p:last-child {
-      margin-bottom: 0;
-    }
+    .overview-banner p { font-size: 0.95rem; color: var(--text); margin-bottom: 10px; }
+    .overview-banner p:last-child { margin-bottom: 0; }
 
+    /* Single-line Navigation Tabs */
     .nav-tabs {
-      display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);
-      flex-wrap: wrap;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: thin;
     }
     .nav-tab {
-      padding: 10px 18px; background: transparent; border: none; color: var(--text-muted);
-      cursor: pointer; font-size: 0.95rem; font-weight: 600; border-bottom: 3px solid transparent;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
       transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .nav-tab:hover { color: var(--text); }
+    .nav-tab:hover { color: var(--primary); }
     .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
     .tab-content { display: none; }
@@ -76,536 +90,485 @@
     @media (max-width: 850px) { .grid-2 { grid-template-columns: 1fr; } }
 
     .card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 20px; margin-bottom: 20px;
+      background: var(--card-bg); 
+      border: 1px solid var(--border);
+      border-radius: 10px; 
+      padding: 22px; 
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 12px; }
     .card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 8px; }
 
     label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; }
-    input[type="number"], select {
+    input[type="text"], select, textarea {
       width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: #0b1120; color: #fff; font-size: 1rem; margin-bottom: 12px;
+      background: #ffffff; color: var(--text); font-size: 0.95rem; margin-bottom: 12px;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--primary);
     }
     .btn {
       padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;
-      background: var(--primary); color: #0f172a; transition: opacity 0.2s;
+      background: var(--primary); color: #ffffff; transition: all 0.2s;
     }
-    .btn:hover { opacity: 0.9; }
-    .btn-secondary { background: #475569; color: #fff; margin-left: 8px; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #f0e1e5; color: var(--text); margin-left: 8px; }
+    .btn-secondary:hover { background: var(--border); }
 
-    canvas { background: #0b1120; border-radius: 8px; width: 100%; border: 1px solid var(--border); }
-    
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
-    th, td { padding: 10px; border: 1px solid var(--border); text-align: center; }
-    th { background: #0f172a; color: var(--primary); }
-    tr:nth-child(even) { background: #162032; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
+    th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+    th { background: var(--accent-light); color: var(--primary); }
+    tr:nth-child(even) { background: var(--card-alt); }
 
     .badge {
       display: inline-block; padding: 4px 8px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: bold; background: #334155; color: #38bdf8;
+      font-size: 0.8rem; font-weight: bold; background: var(--border); color: var(--primary);
     }
-    .badge-key { background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid var(--primary); }
-    .badge-eth { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+    .badge-accent { 
+      background: var(--accent-light); 
+      color: var(--primary); 
+      border: 1px solid #e0b3c0; 
+    }
+    .badge-warning { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
 
     pre, code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      background: #0b1120; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem;
+      background: var(--accent-light); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
+      word-break: break-all; color: var(--primary); border: 1px solid #f3d5de;
     }
-    .formula-box {
-      background: #0b1120; padding: 12px; border-left: 4px solid var(--primary);
-      margin: 12px 0; border-radius: 4px; font-family: monospace; line-height: 1.6;
+    .flow-step {
+      background: var(--card-alt); border-left: 4px solid var(--primary);
+      padding: 14px; margin-bottom: 14px; border-radius: 6px;
     }
+    .flow-step h4 { color: var(--primary); margin-bottom: 6px; font-size: 1rem; }
+    .flow-step p { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; }
     .chart-container { position: relative; height: 260px; width: 100%; margin-top: 15px; }
+
+    .timeline {
+      position: relative; border-left: 3px solid var(--primary); margin-left: 15px; padding-left: 20px;
+    }
+    .timeline-item { position: relative; margin-bottom: 20px; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
+    }
+    .timeline-date { font-weight: bold; color: var(--primary); font-size: 0.9rem; }
+    .timeline-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; }
+    .timeline-desc { font-size: 0.9rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Elliptic-Curve Scalar Multiplication (ECDLP)</h1>
-      <p>Toy Model: y² ≡ x³ + 7 (mod 17) &mdash; Ethereum secp256k1 Key Derivation Prototype</p>
+      <h1>Cryptographic Hash Functions &amp; Statistical Properties</h1>
+      <p>Exploring One-Way Compression, Uniform Distribution &amp; The Avalanche Effect</p>
     </header>
 
-    <!-- EXPLANATION BANNER (IN ENGLISH) -->
+    <!-- THEORETICAL OVERVIEW BANNER -->
     <div class="overview-banner">
-      <h2>&#128218; Theoretical Overview &amp; Homework Context</h2>
+      <h2>&#128218; Theoretical Overview &amp; Foundations</h2>
       <p>
-        In modern blockchain architectures such as <strong>Ethereum</strong>, accounts and digital identities are governed by 
-        <strong>Public-Key Cryptography</strong> based on Elliptic Curves. Ethereum specifically utilizes the <code>secp256k1</code> standard curve: 
-        <code>y² ≡ x³ + 7 (mod p)</code>, where <em>p</em> is a massive 256-bit prime number.
+        A <strong>Cryptographic Hash Function</strong> is a deterministic algorithm that maps an arbitrary-length input string to a fixed-size byte array. To be cryptographically secure, a hash algorithm must satisfy three core security guarantees: <strong>Preimage Resistance</strong> (one-way property), <strong>Second Preimage Resistance</strong> (target collision resistance), and <strong>Collision Resistance</strong>.
+      </p>
+      <p style="font-family: monospace; background: #ffffff; padding: 10px; border-radius: 6px; color: var(--primary); border: 1px solid var(--border);">
+        Input Text (Arbitrary Length) &rarr; Hash Algorithm (SHA-256 / Keccak-256) &rarr; Fixed 256-bit Hexadecimal Digest
       </p>
       <p>
-        <strong>How Key Derivation Works:</strong> A user picks a random secret integer <em>k</em> called the <strong>Private Key</strong>. 
-        The corresponding <strong>Public Key</strong> is computed as the geometric point multiplication <code>Q = k · G</code>, 
-        where <em>G</em> is a globally agreed generator (base point). 
-        While computing <code>Q = k · G</code> is computationally trivial via modular arithmetic (using the <em>Double-and-Add</em> algorithm in O(log k) operations), 
-        reversing this calculation &mdash; determining the secret scalar <em>k</em> given only <em>Q</em> and <em>G</em> &mdash; is known as the 
-        <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong>. Solving the ECDLP takes infeasible exponential/sub-exponential time 
-        (O(&radic;n) steps), making scalar multiplication an algebraic <strong>One-Way Function (OWF)</strong>.
-      </p>
-      <p>
-        <strong>Our Toy Model:</strong> To visualize every discrete point and understand the group law arithmetic without handling 256-bit astronomical numbers, 
-        this application implements the exact secp256k1 parameters scaled down to the finite field <code>ℤ₁₇</code> (p = 17, a = 0, b = 7), with base point 
-        <code>G = (1, 5)</code> and group order <code>n = 19</code> (including the neutral point at infinity 𝒪).
+        <strong>Strict Avalanche Criterion (SAC):</strong> A crucial statistical property requiring that if a single bit in the input message is flipped, each bit of the resulting output hash must change with a 50% probability, rendering outputs pseudorandom and uncorrelated.
       </p>
     </div>
 
+    <!-- CLEAN SINGLE-LINE TABS -->
     <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('tab-sim')">1. Point Multiplier &amp; Guru Canvas</button>
-      <button class="nav-tab" onclick="switchTab('tab-stats')">2. Statistical Exploration Lab</button>
-      <button class="nav-tab" onclick="switchTab('tab-crypto')">3. Cryptographic Theory &amp; Ethereum Analysis</button>
+      <button class="nav-tab active" onclick="switchTab('tab-hashing')">1. Hash Computing Lab</button>
+      <button class="nav-tab" onclick="switchTab('tab-avalanche')">2. Avalanche &amp; SAC Analysis</button>
+      <button class="nav-tab" onclick="switchTab('tab-properties')">3. Security Foundations</button>
+      <button class="nav-tab" onclick="switchTab('tab-history')">4. Historical Context</button>
     </div>
 
-    <!-- TAB 1: SIMULATOR & CANVAS -->
-    <div id="tab-sim" class="tab-content active">
+    <!-- TAB 1: INTERACTIVE HASHING LAB -->
+    <div id="tab-hashing" class="tab-content active">
       <div class="grid-2">
         <div class="card">
-          <h2>Parameters &amp; Multiplier</h2>
-          <div class="formula-box">
-            Equation: y² ≡ x³ + 7 (mod 17) [a = 0, b = 7, p = 17]<br>
-            Base Point: G = (1, 5)<br>
-            Finite Cyclic Group Order: n = 19 (including 𝒪)
-          </div>
-          
-          <label for="privateKey">Private Key k (Scalar ∈ [1, 18]):</label>
-          <input type="number" id="privateKey" value="6" min="1" max="18">
+          <h2>Input &amp; Algorithm Configuration</h2>
+          <label for="inputMessage">Input Message:</label>
+          <input type="text" id="inputMessage" value="Hello Cryptography World" oninput="calculateHashes()">
 
           <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-            <button class="btn" onclick="runCalculation()">Compute Public Key</button>
-            <button class="btn btn-secondary" onclick="stepVisualizer()">Visual Step (+1)</button>
+            <button class="btn" onclick="calculateHashes()">Compute Hashes</button>
+            <button class="btn btn-secondary" onclick="generateRandomInput()">Random String</button>
           </div>
 
-          <div class="card" style="margin-top: 15px; background: #162032;">
-            <h3>Resulting Public Key Q = k · G</h3>
-            <p>Calculated Public Point: <span id="pubKeyResult" class="badge badge-key" style="font-size: 1.1rem;">(?, ?)</span></p>
-            <p style="margin-top: 6px;">Uncompressed Hex (04 || x || y): <code id="pubKeyHex">04...</code></p>
-            <p style="margin-top: 6px;">Simulated Toy Eth Address: <span id="pubKeyEth" class="badge badge-eth">0x...</span></p>
-          </div>
-
-          <h3 style="margin-top: 20px;">Scalar Steps: G, 2G, ..., kG</h3>
-          <div style="max-height: 250px; overflow-y: auto;">
-            <table id="stepTable">
-              <thead>
-                <tr><th>i</th><th>Point i·G</th><th>Affine (x, y)</th><th>Method</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="card" style="margin-top: 15px; background: var(--card-alt);">
+            <h3>Calculated Hash Digest</h3>
+            <p style="margin-top: 6px;"><span id="hashOutput" class="badge badge-accent" style="font-size: 1.05rem; word-break: break-all;">Computing...</span></p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
+              Digest size: 256 bits (64 hexadecimal characters).
+            </p>
           </div>
         </div>
 
         <div class="card">
-          <h2>Guru Visualizer: Torus Lattice &amp; Chord Rule</h2>
-          <canvas id="curveCanvas" width="500" height="500"></canvas>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 10px;">
-            <strong style="color: #38bdf8;">Cyan circles</strong>: All 18 valid affine points on curve + 𝒪 (Point at Infinity).<br>
-            <strong style="color: #10b981;">Green</strong>: Base point G = (1, 5).<br>
-            <strong style="color: #f43f5e;">Red</strong>: Target Public Key point Q = kG.<br>
-            <strong style="color: #fbbf24;">Yellow dashed line</strong>: Chord connecting previous step (k-1)G and target Q.
-          </p>
+          <h2>Multi-Algorithm Comparison</h2>
+          
+          <div class="flow-step">
+            <h4>SHA-256 (NIST FIPS 180-4)</h4>
+            <p>Standard Merkle&ndash;Damg&aring;rd construction utilizing 32-bit word operations:</p>
+            <code id="sha256Digest">Calculating...</code>
+          </div>
+
+          <div class="flow-step">
+            <h4>Keccak-256 (Ethereum Standard)</h4>
+            <p>Sponge construction operating over a 1600-bit state (Keccak-f[1600]):</p>
+            <code id="keccakDigest">Calculating...</code>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: STATISTICAL EXPLORATION -->
-    <div id="tab-stats" class="tab-content">
+    <!-- TAB 2: AVALANCHE & SAC ANALYSIS -->
+    <div id="tab-avalanche" class="tab-content">
       <div class="card">
-        <h2>Statistical Exploration: Group Manifold &amp; Avalanche Effect</h2>
+        <h2>Statistical Distribution &amp; Avalanche Effect Visualizer</h2>
         <p style="color: var(--text-muted);">
-          Examining all 18 non-trivial points generated by k ∈ [1, 18] to evaluate coordinate distribution, linear correlations, and bit flipping.
+          Testing uniform byte distribution and verifying the Strict Avalanche Criterion across small perturbations.
         </p>
-        
+
         <div class="grid-2" style="margin-top: 15px;">
           <div>
-            <h3>Coordinate Frequency Distribution</h3>
+            <h3>Hash Nibble Frequency Distribution</h3>
             <div class="chart-container">
-              <canvas id="coordDistChart"></canvas>
+              <canvas id="nibbleChart"></canvas>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              <strong>Finding:</strong> Coordinates are <em>not uniformly distributed</em> across ℤ₁₇. An elliptic curve point only exists when <code>x³ + 7</code> is a <strong>Quadratic Residue</strong> modulo 17.
+              Uniformity test across all 16 hexadecimal nibble values [0 &ndash; f].
             </p>
           </div>
 
           <div>
-            <h3>Input Key (k) vs Output Coordinate (x) Correlation</h3>
+            <h3>Bit Flip Sensitivity (Avalanche Test)</h3>
             <div class="chart-container">
-              <canvas id="scatterChart"></canvas>
+              <canvas id="avalancheChart"></canvas>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              <strong>Finding:</strong> The points are pseudorandomly scattered. There is no simple linear or monotonic function connecting the private scalar <em>k</em> with the output coordinate.
+              Measuring bit variations across single character modifications.
             </p>
           </div>
         </div>
 
-        <div class="card" style="margin-top: 20px; background: #162032;">
-          <h3>Avalanche-like Behavior Demonstration</h3>
+        <div class="card" style="margin-top: 20px; background: var(--card-alt);">
+          <h3>Strict Avalanche Criterion (SAC) Output Table</h3>
           <p style="font-size: 0.9rem; margin-bottom: 10px;">
-            Measuring coordinate Hamming distance when the private key increments by 1 (k &rarr; k + 1):
+            Comparing output hashes before and after a <strong>1-bit character perturbation</strong>:
           </p>
-          <table id="avalancheTable">
+          <table>
             <thead>
-              <tr><th>k</th><th>Point kG</th><th>Binary Rep (5-bit x || 5-bit y)</th><th>Hamming Distance from (k-1)G</th></tr>
+              <tr><th>Algorithm</th><th>Original Hash (First 16 hex)</th><th>Perturbed Hash (1-char shift)</th><th>Bit Difference (Hamming %)</th></tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="avalancheTableBody"></tbody>
           </table>
+          <p style="font-size: 0.85rem; color: var(--primary); margin-top: 8px;">
+            &#10004; High-quality cryptographic hash functions flip approximately 50% of total output bits.
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: CRYPTOGRAPHIC THEORY -->
-    <div id="tab-crypto" class="tab-content">
+    <!-- TAB 3: PRIMITIVE FOUNDATIONS -->
+    <div id="tab-properties" class="tab-content">
       <div class="card">
-        <h2>Cryptographic Analysis: One-Way Functions vs Hash Functions</h2>
-        
-        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div style="background: #162032; padding: 18px; border-radius: 8px;">
-            <h3 style="color: var(--primary);">&#128274; Elliptic Curve Scalar Multiplication (k · G)</h3>
-            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1; line-height: 1.7;">
-              <li><strong>One-Way Function (OWF):</strong> Easy forward: O(log k) using the Double-and-Add algorithm. Hard in reverse: requires solving the ECDLP, which takes O(&radic;n) steps using Pollard's rho algorithm.</li>
-              <li><strong>Preserves Group Homomorphism:</strong> (k₁ + k₂)G = k₁G + k₂G. This algebraic linearity is vital for Schnorr signatures, ECDSA, ring signatures, and zero-knowledge proofs.</li>
-              <li><strong>Non-Uniformity:</strong> The points are strictly constrained to the 1-dimensional elliptic curve abelian group. They do not fill the 2D space ℤ_p &times; ℤ_p uniformly.</li>
-            </ul>
-          </div>
+        <h2>Core Properties of Cryptographic Hash Functions</h2>
+        <p style="color: var(--text-muted); margin-bottom: 14px;">
+          Essential guarantees required for cryptographic security in signatures, proofs, and blockchains:
+        </p>
 
-          <div style="background: #162032; padding: 18px; border-radius: 8px;">
-            <h3 style="color: var(--accent);">&#9889; Cryptographic Hash Functions (Keccak-256)</h3>
-            <ul style="margin-left: 20px; margin-top: 10px; font-size: 0.95rem; color: #cbd5e1; line-height: 1.7;">
-              <li><strong>Destroys Homomorphism:</strong> Hash functions explicitly destroy algebraic structure: H(x + y) &ne; H(x) + H(y).</li>
-              <li><strong>Strict Avalanche Criterion (SAC):</strong> Flipping a single bit of the input flips approximately 50% of the output bits with zero correlation.</li>
-              <li><strong>Uniform Random Oracle:</strong> Output bits are statistically indistinguishable from uniform white noise across the entire 256-bit digest space.</li>
-            </ul>
-          </div>
-        </div>
+        <table>
+          <thead>
+            <tr><th>Security Property</th><th>Mathematical Definition</th><th>Practical Security Implication</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Preimage Resistance</strong></td>
+              <td>Given $h$, computationally infeasible to find $m$ such that $H(m) = h$.</td>
+              <td>Prevents attackers from recovering sensitive original passwords or secret keys from stored digests.</td>
+            </tr>
+            <tr>
+              <td><strong>Second Preimage Resistance</strong></td>
+              <td>Given $m_1$, infeasible to find $m_2 \neq m_1$ such that $H(m_1) = H(m_2)$.</td>
+              <td>Ensures a attacker cannot substitute a malicious document for an already signed legitimate message.</td>
+            </tr>
+            <tr>
+              <td><strong>Collision Resistance</strong></td>
+              <td>Infeasible to find any pair $(m_1, m_2)$ such that $H(m_1) = H(m_2)$.</td>
+              <td>Guarantees unique digital identity in cryptographic proofs, Merkel trees, and transaction IDs.</td>
+            </tr>
+            <tr>
+              <td><strong>Determinism &amp; Efficiency</strong></td>
+              <td>Same input always produces identical output in $O(N)$ time.</td>
+              <td>Allows fast verification across distributed networks without high computational overhead.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-        <div class="card" style="margin-top: 20px;">
-          <h3>Parameter Comparison: Toy Curve vs Production Ethereum</h3>
-          <table>
-            <thead>
-              <tr><th>Property</th><th>Homework Toy Curve</th><th>Ethereum secp256k1 Curve</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Field Prime p</strong></td>
-                <td>17 (5 bits)</td>
-                <td>2<sup>256</sup> &minus; 2<sup>32</sup> &minus; 977 (256 bits)</td>
-              </tr>
-              <tr>
-                <td><strong>Equation</strong></td>
-                <td>y² ≡ x³ + 7 (mod 17)</td>
-                <td>y² ≡ x³ + 7 (mod p)</td>
-              </tr>
-              <tr>
-                <td><strong>Base Point G</strong></td>
-                <td>(1, 5)</td>
-                <td>Standard uncompressed 65-byte generator</td>
-              </tr>
-              <tr>
-                <td><strong>Cyclic Group Order n</strong></td>
-                <td>19</td>
-                <td>&asymp; 1.1579 &times; 10<sup>77</sup></td>
-              </tr>
-              <tr>
-                <td><strong>Address Derivation Pipeline</strong></td>
-                <td>Toy: <code>0x || (x² + y² mod 256)</code></td>
-                <td>Production: <code>Last 20 bytes of Keccak256(Q_uncompressed)</code></td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- TAB 4: CHRONOLOGICAL CONTEXT -->
+    <div id="tab-history" class="tab-content">
+      <div class="card">
+        <h2>Historical Evolution of Cryptographic Hashing</h2>
+        <div class="timeline" style="margin-top: 20px;">
+          <div class="timeline-item">
+            <div class="timeline-date">1990</div>
+            <div class="timeline-title">MD4 Introduced by Ronald Rivest</div>
+            <div class="timeline-desc">One of the earliest dedicated hash functions. Quickly demonstrated vulnerabilities to collision attacks.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">1992</div>
+            <div class="timeline-title">MD5 Published</div>
+            <div class="timeline-desc">Widely adopted 128-bit hash function. Broken in the mid-2000s due to theoretical and practical collision exploits.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">1995</div>
+            <div class="timeline-title">SHA-1 Standardized by NIST</div>
+            <div class="timeline-desc">160-bit hash standard. Deprecated in 2011 after practical collision generation attacks were demonstrated.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">2001</div>
+            <div class="timeline-title">SHA-2 Family Published</div>
+            <div class="timeline-desc">Introduced SHA-256 and SHA-512 based on the Merkle&ndash;Damg&aring;rd design, remaining a widely used industry standard.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">2015</div>
+            <div class="timeline-title">SHA-3 (Keccak) Standardized (FIPS 202)</div>
+            <div class="timeline-desc">Introduced the sponge construction architecture, offering structurally distinct protection against Merkle&ndash;Damg&aring;rd attack vectors.</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // --- MATHEMATICAL CORE: TOY CURVE y^2 = x^3 + 7 (mod 17) ---
-    const P = 17;
-    const A = 0;
-    const B = 7;
-    const G = { x: 1, y: 5 };
-    const N = 19; // Group order including point at infinity
+    // --- CRYPTOGRAPHIC IMPLEMENTATION & HELPERS ---
 
-    function mod(n, m) { return ((n % m) + m) % m; }
+    // 1. Keccak-256 Pure JS Implementation
+    const RC = [
+      0x0000000000000001n, 0x0000000000008082n, 0x800000000000808an, 0x8000000080008000n,
+      0x000000000000808bn, 0x0000000080000001n, 0x8000000080008081n, 0x8000000000008009n,
+      0x000000000000008an, 0x0000000000000088n, 0x0000000080008009n, 0x000000008000000an,
+      0x000000008000808bn, 0x800000000000008bn, 0x8000000000008089n, 0x8000000000008003n,
+      0x8000000000008002n, 0x8000000000000080n, 0x000000000000800an, 0x800000008000000an,
+      0x8000000080008081n, 0x8000000000008080n, 0x0000000080000001n, 0x8000000080008008n
+    ];
 
-    // Extended Euclidean Algorithm for Modular Multiplicative Inverse
-    function modInverse(a, m) {
-      a = mod(a, m);
-      for (let x = 1; x < m; x++) {
-        if ((a * x) % m === 1) return x;
-      }
-      return 1;
+    const ROTC = [
+      [0n, 36n, 3n, 41n, 18n],
+      [1n, 44n, 10n, 45n, 2n],
+      [62n, 6n, 43n, 15n, 61n],
+      [28n, 55n, 25n, 21n, 56n],
+      [27n, 20n, 39n, 8n, 14n]
+    ];
+
+    function rotl64(x, r) {
+      return ((x << r) | (x >> (64n - r))) & 0xFFFFFFFFFFFFFFFFn;
     }
 
-    function pointEqual(p1, p2) {
-      if (!p1 && !p2) return true;
-      if (!p1 || !p2) return false;
-      return p1.x === p2.x && p1.y === p2.y;
+    function keccakF1600(state) {
+      for (let round = 0; round < 24; round++) {
+        const C = new Array(5);
+        for (let x = 0; x < 5; x++) {
+          C[x] = state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20];
+        }
+        const D = new Array(5);
+        for (let x = 0; x < 5; x++) {
+          D[x] = C[(x + 4) % 5] ^ rotl64(C[(x + 1) % 5], 1n);
+        }
+        for (let x = 0; x < 5; x++) {
+          for (let y = 0; y < 5; y++) {
+            state[x + 5 * y] ^= D[x];
+          }
+        }
+        const B = new Array(25);
+        for (let x = 0; x < 5; x++) {
+          for (let y = 0; y < 5; y++) {
+            B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl64(state[x + 5 * y], ROTC[x][y]);
+          }
+        }
+        for (let x = 0; x < 5; x++) {
+          for (let y = 0; y < 5; y++) {
+            state[x + 5 * y] = (B[x + 5 * y] ^ ((~B[(x + 1) % 5 + 5 * y]) & B[(x + 2) % 5 + 5 * y])) & 0xFFFFFFFFFFFFFFFFn;
+          }
+        }
+        state[0] ^= RC[round];
+      }
     }
 
-    // Elliptic curve group addition
-    function pointAdd(p1, p2) {
-      if (!p1) return p2; // O + P = P
-      if (!p2) return p1; // P + O = P
-
-      if (p1.x === p2.x && mod(p1.y + p2.y, P) === 0) {
-        return null; // Point at infinity O
-      }
-
-      let lambda;
-      if (pointEqual(p1, p2)) {
-        // Point Doubling: lambda = (3*x1^2 + a) / (2*y1) mod P
-        const num = mod(3 * p1.x * p1.x + A, P);
-        const den = modInverse(2 * p1.y, P);
-        lambda = mod(num * den, P);
+    function keccak256(bytes) {
+      const rate = 136;
+      const padLen = rate - (bytes.length % rate);
+      const padded = new Uint8Array(bytes.length + padLen);
+      padded.set(bytes);
+      if (padLen === 1) {
+        padded[bytes.length] = 0x81;
       } else {
-        // Point Addition: lambda = (y2 - y1) / (x2 - x1) mod P
-        const num = mod(p2.y - p1.y, P);
-        const den = modInverse(p2.x - p1.x, P);
-        lambda = mod(num * den, P);
+        padded[bytes.length] = 0x01;
+        padded[padded.length - 1] = 0x80;
       }
 
-      const x3 = mod(lambda * lambda - p1.x - p2.x, P);
-      const y3 = mod(lambda * (p1.x - x3) - p1.y, P);
-      return { x: x3, y: y3, lambda: lambda };
-    }
-
-    function scalarMultiply(k, point) {
-      let current = null;
-      const history = [];
-      for (let i = 1; i <= k; i++) {
-        current = pointAdd(current, point);
-        history.push({ step: i, point: current });
-      }
-      return { result: current, history: history };
-    }
-
-    // Find all valid affine points on the curve
-    function getAllCurvePoints() {
-      const points = [];
-      for (let x = 0; x < P; x++) {
-        const rhs = mod(x * x * x + B, P);
-        for (let y = 0; y < P; y++) {
-          if (mod(y * y, P) === rhs) {
-            points.push({ x, y });
+      const state = new Array(25).fill(0n);
+      for (let b = 0; b < padded.length; b += rate) {
+        for (let i = 0; i < 17; i++) {
+          let word = 0n;
+          for (let byteIdx = 0; byteIdx < 8; byteIdx++) {
+            word |= BigInt(padded[b + i * 8 + byteIdx]) << BigInt(byteIdx * 8);
           }
+          state[i] ^= word;
+        }
+        keccakF1600(state);
+      }
+
+      const out = new Uint8Array(32);
+      for (let i = 0; i < 4; i++) {
+        let w = state[i];
+        for (let byteIdx = 0; byteIdx < 8; byteIdx++) {
+          out[i * 8 + byteIdx] = Number(w & 0xFFn);
+          w >>= 8n;
         }
       }
-      return points;
+      return out;
     }
 
-    const ALL_POINTS = getAllCurvePoints();
-
-    // --- APPLICATION LOGIC ---
-    let currentK = 6;
-    let distChart = null;
-    let scatterChartInstance = null;
-
-    function runCalculation() {
-      const kInput = parseInt(document.getElementById('privateKey').value, 10);
-      currentK = isNaN(kInput) ? 6 : Math.max(1, Math.min(18, kInput));
-      document.getElementById('privateKey').value = currentK;
-
-      const { result, history } = scalarMultiply(currentK, G);
-
-      // Render Public Key
-      const pubLabel = result ? `(${result.x}, ${result.y})` : "Point at Infinity (𝒪)";
-      document.getElementById('pubKeyResult').innerText = pubLabel;
-
-      if (result) {
-        const hexX = result.x.toString(16).padStart(2, '0');
-        const hexY = result.y.toString(16).padStart(2, '0');
-        document.getElementById('pubKeyHex').innerText = `04${hexX}${hexY}`;
-        const toyHash = mod((result.x * 31 + result.y * 17), 256).toString(16).padStart(2, '0');
-        document.getElementById('pubKeyEth').innerText = `0x${toyHash}92...fa`;
-      } else {
-        document.getElementById('pubKeyHex').innerText = "N/A (Infinity)";
-        document.getElementById('pubKeyEth').innerText = "0x0000...00";
-      }
-
-      // Render Table
-      const tbody = document.querySelector('#stepTable tbody');
-      tbody.innerHTML = '';
-      history.forEach(h => {
-        const tr = document.createElement('tr');
-        const ptStr = h.point ? `(${h.point.x}, ${h.point.y})` : "𝒪 (Infinity)";
-        tr.innerHTML = `
-          <td><strong>${h.step}G</strong></td>
-          <td>${ptStr}</td>
-          <td>${h.point ? `x=${h.point.x}, y=${h.point.y}` : "None"}</td>
-          <td>${h.step === 1 ? 'Generator' : (h.step % 2 === 0 ? 'Point Doubling / Addition' : 'Point Addition')}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      drawGuruCanvas(result);
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function stepVisualizer() {
-      currentK = (currentK % 18) + 1;
-      document.getElementById('privateKey').value = currentK;
-      runCalculation();
+    async function computeSHA256(message) {
+      const msgUint8 = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      return bytesToHex(new Uint8Array(hashBuffer));
     }
 
-    // --- CANVAS VISUALIZATION (GURU LEVEL) ---
-    function drawGuruCanvas(highlightPt) {
-      const canvas = document.getElementById('curveCanvas');
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      const pad = 40;
-      const scale = (w - 2 * pad) / (P - 1);
+    let nibbleChartInstance = null;
+    let avalancheChartInstance = null;
 
-      ctx.clearRect(0, 0, w, h);
+    async function calculateHashes() {
+      const input = document.getElementById('inputMessage').value;
+      const sha256Hex = await computeSHA256(input);
+      const keccakHex = bytesToHex(keccak256(new TextEncoder().encode(input)));
 
-      // Draw Grid Lines & Axis Numbers
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < P; i++) {
-        const pos = pad + i * scale;
-        ctx.beginPath(); ctx.moveTo(pos, pad); ctx.lineTo(pos, h - pad); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(pad, pos); ctx.lineTo(w - pad, pos); ctx.stroke();
-        
-        ctx.fillStyle = '#64748b';
-        ctx.font = '10px monospace';
-        ctx.fillText(i, pos - 3, h - pad + 16);
-        ctx.fillText(P - 1 - i, pad - 22, pad + i * scale + 3);
-      }
+      document.getElementById('hashOutput').innerText = sha256Hex;
+      document.getElementById('sha256Digest').innerText = sha256Hex;
+      document.getElementById('keccakDigest').innerText = keccakHex;
 
-      function toScreen(x, y) {
-        return {
-          sx: pad + x * scale,
-          sy: pad + (P - 1 - y) * scale
-        };
-      }
-
-      // Draw all valid points on curve
-      ALL_POINTS.forEach(pt => {
-        const { sx, sy } = toScreen(pt.x, pt.y);
-        ctx.beginPath();
-        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#0284c7';
-        ctx.fill();
-      });
-
-      // Draw Base Point G
-      const sG = toScreen(G.x, G.y);
-      ctx.beginPath();
-      ctx.arc(sG.sx, sG.sy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#10b981';
-      ctx.fill();
-      ctx.fillText("G (1,5)", sG.sx + 10, sG.sy - 8);
-
-      // Draw Highlighted Public Key Q
-      if (highlightPt) {
-        const sQ = toScreen(highlightPt.x, highlightPt.y);
-        ctx.beginPath();
-        ctx.arc(sQ.sx, sQ.sy, 9, 0, Math.PI * 2);
-        ctx.fillStyle = '#f43f5e';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillText(`Q = ${currentK}G`, sQ.sx + 10, sQ.sy - 10);
-
-        // Draw geometric chord line between (k-1)G and target
-        if (currentK > 1) {
-          const prevPt = scalarMultiply(currentK - 1, G).result;
-          if (prevPt) {
-            const sPrev = toScreen(prevPt.x, prevPt.y);
-            ctx.beginPath();
-            ctx.moveTo(sPrev.sx, sPrev.sy);
-            ctx.lineTo(sQ.sx, sQ.sy);
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([4, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-          }
-        }
-      }
+      updateStatisticalPlots(sha256Hex, input);
     }
 
-    // --- TAB 2: STATISTICAL EXPLORATION LAB ---
-    function initStats() {
-      const xCounts = Array(P).fill(0);
-      const yCounts = Array(P).fill(0);
-      const scatterData = [];
-      const avalancheTbody = document.querySelector('#avalancheTable tbody');
-      avalancheTbody.innerHTML = '';
+    function generateRandomInput() {
+      const samples = [
+        "Cryptographic Hash Functions",
+        "Merkle-Damgard vs Sponge",
+        "Strict Avalanche Criterion 2026",
+        "Blockchain Security Foundations"
+      ];
+      const idx = Math.floor(Math.random() * samples.length);
+      document.getElementById('inputMessage').value = samples[idx];
+      calculateHashes();
+    }
 
-      let prevPoint = null;
-
-      for (let k = 1; k <= 18; k++) {
-        const pt = scalarMultiply(k, G).result;
-        if (pt) {
-          xCounts[pt.x]++;
-          yCounts[pt.y]++;
-          scatterData.push({ x: k, y: pt.x });
-
-          // Avalanche calculation: Hamming distance between binary representation of coordinates
-          const binStr = (pt.x.toString(2).padStart(5, '0')) + (pt.y.toString(2).padStart(5, '0'));
-          let hDist = "N/A (Origin)";
-          if (prevPoint) {
-            const prevBin = (prevPoint.x.toString(2).padStart(5, '0')) + (prevPoint.y.toString(2).padStart(5, '0'));
-            let diff = 0;
-            for (let b = 0; b < 10; b++) {
-              if (binStr[b] !== prevBin[b]) diff++;
-            }
-            hDist = `${diff} / 10 bits (${(diff / 10 * 100).toFixed(0)}%)`;
-          }
-          prevPoint = pt;
-
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td><strong>k = ${k}</strong></td>
-            <td>(${pt.x}, ${pt.y})</td>
-            <td><code>${binStr.slice(0, 5)} || ${binStr.slice(5)}</code></td>
-            <td><span class="badge ${hDist.includes('N/A') ? '' : 'badge-key'}">${hDist}</span></td>
-          `;
-          avalancheTbody.appendChild(row);
-        }
+    async function updateStatisticalPlots(sha256Hex, originalInput) {
+      // 1. Nibble Frequency Chart (Coordinato in Bordeaux)
+      const counts = new Array(16).fill(0);
+      for (let ch of sha256Hex) {
+        counts[parseInt(ch, 16)]++;
       }
 
-      // 1. Bar Chart: Coordinate Frequencies
-      if (distChart) distChart.destroy();
-      const ctxDist = document.getElementById('coordDistChart').getContext('2d');
-      distChart = new Chart(ctxDist, {
+      if (nibbleChartInstance) nibbleChartInstance.destroy();
+      const ctxNibble = document.getElementById('nibbleChart').getContext('2d');
+      nibbleChartInstance = new Chart(ctxNibble, {
         type: 'bar',
         data: {
-          labels: Array.from({length: P}, (_, i) => i),
-          datasets: [
-            { label: 'x-coord frequency', data: xCounts, backgroundColor: '#38bdf8' },
-            { label: 'y-coord frequency', data: yCounts, backgroundColor: '#f43f5e' }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, grid: { color: '#334155' } },
-            x: { grid: { color: '#334155' } }
-          }
-        }
-      });
-
-      // 2. Scatter Plot: Input k vs Output x
-      if (scatterChartInstance) scatterChartInstance.destroy();
-      const ctxScatter = document.getElementById('scatterChart').getContext('2d');
-      scatterChartInstance = new Chart(ctxScatter, {
-        type: 'scatter',
-        data: {
+          labels: ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'],
           datasets: [{
-            label: 'Scalar k vs Output x-coordinate',
-            data: scatterData,
-            backgroundColor: '#10b981',
-            pointRadius: 6
+            label: 'Nibble Occurrences',
+            data: counts,
+            backgroundColor: '#800020',
+            borderRadius: 4
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: 'Private Key k', color: '#94a3b8' }, min: 1, max: 18, grid: { color: '#334155' } },
-            y: { title: { display: true, text: 'Affine x', color: '#94a3b8' }, min: 0, max: 17, grid: { color: '#334155' } }
+            y: { beginAtZero: true, grid: { color: '#f0e1e5' } },
+            x: { grid: { color: '#f0e1e5' } }
           }
         }
       });
+
+      // 2. Avalanche Effect Bit Shift Test
+      const perturbedInput = originalInput.length > 0 
+        ? originalInput.slice(0, -1) + String.fromCharCode(originalInput.charCodeAt(originalInput.length - 1) ^ 1)
+        : "a";
+
+      const perturbedSha256 = await computeSHA256(perturbedInput);
+      const perturbedKeccak = bytesToHex(keccak256(new TextEncoder().encode(perturbedInput)));
+
+      function calcHammingPercent(h1, h2) {
+        let diffBits = 0;
+        const len = Math.min(h1.length, h2.length);
+        for (let i = 0; i < len; i++) {
+          let b1 = parseInt(h1[i], 16);
+          let b2 = parseInt(h2[i], 16);
+          let xor = b1 ^ b2;
+          while (xor > 0) {
+            diffBits += (xor & 1);
+            xor >>= 1;
+          }
+        }
+        return ((diffBits / (len * 4)) * 100).toFixed(1);
+      }
+
+      const shaHamming = calcHammingPercent(sha256Hex, perturbedSha256);
+      const keccakOriginal = bytesToHex(keccak256(new TextEncoder().encode(originalInput)));
+      const keccakHamming = calcHammingPercent(keccakOriginal, perturbedKeccak);
+
+      if (avalancheChartInstance) avalancheChartInstance.destroy();
+      const ctxAvalanche = document.getElementById('avalancheChart').getContext('2d');
+      avalancheChartInstance = new Chart(ctxAvalanche, {
+        type: 'bar',
+        data: {
+          labels: ['SHA-256', 'Keccak-256'],
+          datasets: [{
+            label: 'Flipped Bits Percentage (%)',
+            data: [shaHamming, keccakHamming],
+            backgroundColor: ['#800020', '#9e2a4b'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: '#f0e1e5' } },
+            x: { grid: { color: '#f0e1e5' } }
+          }
+        }
+      });
+
+      // Populate Table
+      const tbody = document.getElementById('avalancheTableBody');
+      tbody.innerHTML = `
+        <tr>
+          <td><strong>SHA-256</strong></td>
+          <td><code>${sha256Hex.slice(0, 16)}...</code></td>
+          <td><code>${perturbedSha256.slice(0, 16)}...</code></td>
+          <td><span class="badge badge-accent">${shaHamming}% Bit Flip</span></td>
+        </tr>
+        <tr>
+          <td><strong>Keccak-256</strong></td>
+          <td><code>${keccakOriginal.slice(0, 16)}...</code></td>
+          <td><code>${perturbedKeccak.slice(0, 16)}...</code></td>
+          <td><span class="badge badge-accent">${keccakHamming}% Bit Flip</span></td>
+        </tr>
+      `;
     }
 
     function switchTab(tabId) {
@@ -613,15 +576,10 @@
       document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       event.target.classList.add('active');
-
-      if (tabId === 'tab-stats') {
-        initStats();
-      }
     }
 
-    // Init
     window.onload = () => {
-      runCalculation();
+      calculateHashes();
     };
   </script>
 </body>
