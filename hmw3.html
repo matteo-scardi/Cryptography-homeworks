@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMWK 2: ECC Toy Scheme, Caesar Cipher &amp; Cryptanalysis</title>
+  <style>
+    :root {
+      --bg:#ffffff; --card-bg:#f4f9f4; --card-alt:#e9f2e9; --border:#c7d8c8;
+      --primary:#042107; --primary-hover:#0a3b10; --accent:#2d6a4f;
+      --accent-light:#eaf4eb; --text:#111a12; --text-muted:#4e5e50;
+      --ok:#15803d; --bad:#dc2626;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--text); line-height:1.6; padding:24px; }
+    .container { max-width:1240px; margin:0 auto; }
+    header { text-align:center; margin-bottom:24px; }
+    header h1 { font-size:2.1rem; color:var(--primary); margin-bottom:8px; }
+    header p { color:var(--text-muted); font-size:1.05rem; }
+    .overview-banner { background:linear-gradient(135deg,var(--card-bg),var(--accent-light));
+      border:1px solid var(--border); border-left:5px solid var(--primary);
+      border-radius:10px; padding:22px 26px; margin-bottom:24px; }
+    .overview-banner h2 { font-size:1.25rem; color:var(--primary); margin-bottom:10px; }
+    .overview-banner p { font-size:.95rem; margin-bottom:10px; }
+    .overview-banner p:last-child { margin-bottom:0; }
+    .nav-tabs { display:flex; gap:10px; margin-bottom:24px; border-bottom:2px solid var(--border);
+      flex-wrap:nowrap; overflow-x:auto; }
+    .nav-tab { padding:10px 16px; background:transparent; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:.92rem; font-weight:600; border-bottom:3px solid transparent;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-tab:hover { color:var(--primary); }
+    .nav-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .tab-content { display:none; } .tab-content.active { display:block; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media (max-width:850px) { .grid-2 { grid-template-columns:1fr; } }
+    .card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+      padding:22px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    .card h2 { font-size:1.25rem; color:var(--primary); margin-bottom:12px; }
+    .card h3 { font-size:1.05rem; margin-bottom:8px; }
+    .card p, .card li { font-size:.92rem; margin-bottom:8px; }
+    .card ul { margin-left:20px; }
+    label { display:block; font-weight:500; font-size:.9rem; margin-bottom:6px; }
+    input[type=text], input[type=number], select { width:100%; padding:10px; border-radius:6px;
+      border:1px solid var(--border); background:#fff; color:var(--text); font-size:.95rem; margin-bottom:12px; }
+    .btn { padding:10px 16px; border-radius:6px; font-weight:600; cursor:pointer; border:none;
+      background:var(--primary); color:#fff; }
+    .btn:hover { background:var(--primary-hover); }
+    table { width:100%; border-collapse:collapse; margin-top:14px; font-size:.9rem; }
+    th, td { padding:9px; border:1px solid var(--border); text-align:left; }
+    th { background:var(--accent-light); color:var(--primary); }
+    tr:nth-child(even) { background:var(--card-alt); }
+    tr.best { background:#e7f5ec !important; font-weight:600; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:4px; font-size:.8rem; font-weight:bold;
+      background:var(--accent-light); color:var(--primary); border:1px solid #b8d2b9; }
+    code { font-family:ui-monospace,Menlo,Consolas,monospace; background:var(--accent-light);
+      padding:2px 6px; border-radius:4px; font-size:.82rem; word-break:break-all;
+      color:var(--primary); border:1px solid #c8e1c9; display:inline-block; }
+    .flow-step { background:var(--card-alt); border-left:4px solid var(--primary);
+      padding:14px; margin-bottom:14px; border-radius:6px; }
+    .flow-step h4 { color:var(--primary); margin-bottom:6px; }
+    .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+    .out { margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ECC Toy Scheme, Caesar Cipher &amp; Cryptanalysis</h1>
+    <p>Homework 2 &ndash; Encryption, Key Spaces, Statistical &amp; Discrete-Log Attacks</p>
+  </header>
+
+  <div class="overview-banner">
+    <h2>&#128218; Project Description</h2>
+    <p>
+      This page implements and compares two very different ciphers on the same message: a toy
+      ElGamal/ECIES-style scheme over the <strong>secp256k1</strong> elliptic curve (private key restricted
+      to 16 bits) and the classical <strong>Caesar cipher</strong>. It then breaks both: the Caesar cipher through
+      <strong>chi-squared letter-frequency analysis</strong>, and the toy ECC scheme through a
+      <strong>Baby-Step Giant-Step</strong> discrete-logarithm attack that exploits the small key space.
+    </p>
+    <p>
+      The results highlight how statistical leakage and key-space size, rather than the algebraic structure alone,
+      determine the security of a scheme. Everything runs locally in your browser.
+    </p>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('t1',this)">1. ECC Toy Scheme</button>
+    <button class="nav-tab" onclick="switchTab('t2',this)">2. Caesar Cipher</button>
+    <button class="nav-tab" onclick="switchTab('t3',this)">3. Comparison</button>
+    <button class="nav-tab" onclick="switchTab('t4',this)">4. Caesar Cryptanalysis</button>
+    <button class="nav-tab" onclick="switchTab('t5',this)">5. Attack on Toy ECC</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="t1" class="tab-content active">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Encrypt &amp; Decrypt (secp256k1)</h2>
+        <label for="msg">Message (shared with the Caesar tab):</label>
+        <input type="text" id="msg" value="Hello Cryptography World">
+        <button class="btn" onclick="runECC()">Generate Keys, Encrypt &amp; Decrypt</button>
+        <div class="out" id="eccOut"></div>
+      </div>
+      <div class="card">
+        <h2>Algorithm &amp; Role of the Keys</h2>
+        <div class="flow-step"><h4>Key generation</h4>
+          <p>Private key <code>d</code> &isin; [1, 65535] (restricted). Public key <code>Q = d&middot;G</code>.</p></div>
+        <div class="flow-step"><h4>Encryption</h4>
+          <p>Random ephemeral <code>k</code>; <code>C1 = k&middot;G</code>; shared secret <code>S = k&middot;Q</code>;
+          keystream <code>SHA-256(S.x ‖ i)</code>; <code>C2 = m ⊕ keystream</code>.</p></div>
+        <div class="flow-step"><h4>Decryption</h4>
+          <p><code>S = d&middot;C1 = dk&middot;G = k&middot;Q</code>. Same keystream, so <code>m = C2 ⊕ keystream</code>.</p></div>
+        <p><strong>Roles:</strong> <code>Q</code> and <code>C1</code> are public. Only <code>d</code> (or <code>k</code>) lets one rebuild <code>S</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="t2" class="tab-content">
+    <div class="card">
+      <h2>Caesar Cipher</h2>
+      <div class="grid-2">
+        <div>
+          <label for="cMsg">Plaintext:</label>
+          <input type="text" id="cMsg" value="Hello Cryptography World">
+          <label for="cKey">Key (shift 0&ndash;25):</label>
+          <input type="number" id="cKey" value="7" min="0" max="25">
+          <button class="btn" onclick="runCaesar()">Encrypt &amp; Decrypt</button>
+        </div>
+        <div class="out" id="cOut"></div>
+      </div>
+      <p style="margin-top:12px">Encryption: <code>C = (P + k) mod 26</code> &nbsp; Decryption: <code>P = (C &minus; k) mod 26</code>.
+      Non-letters are left unchanged.</p>
+    </div>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="t3" class="tab-content">
+    <div class="card">
+      <h2>Similarities &amp; Differences</h2>
+      <table>
+        <thead><tr><th>Aspect</th><th>Caesar</th><th>Toy ECC scheme</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Type</strong></td><td>Symmetric, monoalphabetic substitution</td><td>Asymmetric (public/private key), hybrid with hash keystream</td></tr>
+          <tr><td><strong>Encryption</strong></td><td>Shift each letter by <code>k</code></td><td>Scalar multiplications + XOR with hashed shared secret</td></tr>
+          <tr><td><strong>Decryption</strong></td><td>Shift back by <code>k</code></td><td><code>S = d&middot;C1</code>, regenerate keystream, XOR</td></tr>
+          <tr><td><strong>Key space</strong></td><td>26 (&asymp; 2<sup>4.7</sup>)</td><td>2<sup>16</sup> in the toy; &asymp; 2<sup>256</sup> in real ECC</td></tr>
+          <tr><td><strong>Randomness</strong></td><td>Deterministic: same plaintext gives same ciphertext</td><td>Probabilistic: fresh <code>k</code> gives a different ciphertext every time</td></tr>
+          <tr><td><strong>Statistics</strong></td><td>Letter frequencies preserved (only shifted)</td><td>Output looks uniformly random; no plaintext statistics leak</td></tr>
+          <tr><td><strong>Best attack</strong></td><td>Frequency analysis / exhaustive search</td><td>Discrete-log solving (BSGS) thanks to tiny <code>d</code></td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px"><strong>Common ground:</strong> both are deterministic once the secret is known, and both are only as strong as the secret's search space.
+      <strong>Key difference:</strong> Caesar fails <em>statistically</em>, while the toy ECC fails only because of its <em>restricted key range</em>.</p>
+    </div>
+  </div>
+
+  <!-- TAB 4 -->
+  <div id="t4" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Chi-Squared Key Recovery</h2>
+        <p>For each shift <code>s</code> we decrypt and compute
+        <code>&chi;&sup2; = &Sigma; (O<sub>i</sub> &minus; E<sub>i</sub>)&sup2; / E<sub>i</sub></code> against English letter frequencies.
+        The lowest &chi;&sup2; wins.</p>
+        <label for="cipherIn">Ciphertext to attack:</label>
+        <input type="text" id="cipherIn" placeholder="Run the Caesar tab first or paste text">
+        <button class="btn" onclick="attackCaesar()">Attack</button>
+        <div class="out" id="caOut"></div>
+      </div>
+      <div class="card">
+        <h2>Effectiveness vs. Ciphertext Length</h2>
+        <p>200 random trials per length, using random fragments of an English corpus and random keys.</p>
+        <button class="btn" onclick="runBenchmark()">Run Benchmark</button>
+        <div class="out" id="benchOut"></div>
+        <p style="margin-top:10px"><strong>Limitations:</strong> short texts give too few samples, so the distribution is noisy. Non-English or unusual text breaks the language model.
+        <strong>Alternatives:</strong> exhaustive search needs human or dictionary checks. n-gram (bigram/quadgram) log-likelihood scoring is more robust on short texts.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5 -->
+  <div id="t5" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Baby-Step Giant-Step on <code>Q = d&middot;G</code></h2>
+        <p>Search space <em>N</em> = 2<sup>16</sup>, <em>m</em> = 256. Store <code>j&middot;G</code> for j &lt; m (baby steps),
+        then compute <code>Q &minus; i&middot;(m&middot;G)</code> until it matches. Then <code>d = i&middot;m + j</code>. Cost: about &radic;N = 2<sup>8</sup> group operations.</p>
+        <button class="btn" onclick="attackECC()">Attack the Ciphertext from Tab 1</button>
+        <div class="out" id="atOut"></div>
+      </div>
+      <div class="card">
+        <h2>Discussion</h2>
+        <ul>
+          <li><strong>vs. Caesar attack:</strong> Caesar leaks plaintext statistics. The ECC output has no such bias, so we solve a discrete log instead.</li>
+          <li><strong>Real ECC:</strong> with <em>d</em> &asymp; 2<sup>256</sup>, the best generic attack (Pollard&rsquo;s rho) costs &asymp; 2<sup>128</sup> operations, which is infeasible.</li>
+          <li><strong>From the key space:</strong> brute force and BSGS.</li>
+          <li><strong>From the design itself:</strong> no authentication (XOR is malleable), catastrophic <code>k</code> reuse (<code>C2⊕C2' = m⊕m'</code>), no padding (length leaks), and no validation that <code>C1</code> lies on the curve.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== secp256k1 arithmetic (BigInt) ===== */
+const P = 2n**256n - 2n**32n - 977n;
+const N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+const G = { x: 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n,
+            y: 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n };
+const mod = a => ((a % P) + P) % P;
+function inv(a) {
+  let [r0, r1] = [mod(a), P], [s0, s1] = [1n, 0n];
+  while (r1) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
+  return mod(s0);
+}
+function add(A, B) {
+  if (!A) return B; if (!B) return A;
+  let l;
+  if (A.x === B.x) {
+    if (mod(A.y + B.y) === 0n) return null;
+    l = mod(3n * A.x * A.x * inv(2n * A.y));
+  } else l = mod((B.y - A.y) * inv(B.x - A.x));
+  const x = mod(l * l - A.x - B.x);
+  return { x, y: mod(l * (A.x - x) - A.y) };
+}
+function mul(k, pt) {
+  let R = null, Q = pt;
+  while (k > 0n) { if (k & 1n) R = add(R, Q); Q = add(Q, Q); k >>= 1n; }
+  return R;
+}
+const neg = pt => pt ? { x: pt.x, y: mod(-pt.y) } : null;
+const key = pt => pt ? pt.x.toString(16) + ':' + pt.y.toString(16) : 'inf';
+const hex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+const short = (pt) => pt.x.toString(16).padStart(64, '0').slice(0, 20) + '…';
+
+/* ===== Toy ECC scheme ===== */
+const KEY_SPACE = 65536;
+async function keystream(S, len) {
+  const out = new Uint8Array(len);
+  for (let i = 0; i * 32 < len; i++) {
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256',
+      new TextEncoder().encode(S.x.toString(16) + ':' + i)));
+    out.set(h.slice(0, Math.min(32, len - i * 32)), i * 32);
+  }
+  return out;
+}
+const xor = (a, b) => a.map((v, i) => v ^ b[i]);
+let lastECC = null;
+
+async function runECC() {
+  const m = new TextEncoder().encode(document.getElementById('msg').value);
+  const d = BigInt(1 + Math.floor(Math.random() * (KEY_SPACE - 1)));
+  const Q = mul(d, G);
+  const rnd = crypto.getRandomValues(new Uint8Array(32));
+  const k = (BigInt('0x' + hex(rnd)) % (N - 1n)) + 1n;
+  const C1 = mul(k, G), S = mul(k, Q);
+  const C2 = xor(m, await keystream(S, m.length));
+  const S2 = mul(d, C1);
+  const dec = new TextDecoder().decode(xor(C2, await keystream(S2, C2.length)));
+  lastECC = { Q, C1, C2, d };
+  document.getElementById('eccOut').innerHTML = `
+    <p><strong>Private key d:</strong> <code>${d}</code></p>
+    <p><strong>Public key Q.x:</strong> <code>${short(Q)}</code></p>
+    <p><strong>C1.x = (k&middot;G).x:</strong> <code>${short(C1)}</code></p>
+    <p><strong>C2 (hex):</strong> <code>${hex(C2)}</code></p>
+    <p><strong>Decrypted:</strong> <span class="badge">${dec}</span>
+    ${S.x === S2.x ? '<span class="ok">&#10004; d·C1 = k·Q</span>' : '<span class="bad">mismatch</span>'}</p>`;
+}
+
+/* ===== Caesar ===== */
+function caesar(text, k) {
+  return text.replace(/[a-z]/gi, c => {
+    const b = c <= 'Z' ? 65 : 97;
+    return String.fromCharCode(((c.charCodeAt(0) - b + k) % 26 + 26) % 26 + b);
+  });
+}
+function runCaesar() {
+  const t = document.getElementById('cMsg').value;
+  const k = parseInt(document.getElementById('cKey').value) || 0;
+  const c = caesar(t, k);
+  document.getElementById('cipherIn').value = c;
+  document.getElementById('cOut').innerHTML = `
+    <p><strong>Ciphertext:</strong> <span class="badge">${c}</span></p>
+    <p><strong>Decrypted:</strong> <span class="badge">${caesar(c, -k)}</span></p>`;
+}
+
+/* ===== Statistical cryptanalysis ===== */
+const EN = [8.167,1.492,2.782,4.253,12.702,2.228,2.015,6.094,6.966,0.153,0.772,4.025,2.406,
+            6.749,7.507,1.929,0.095,5.987,6.327,9.056,2.758,0.978,2.360,0.150,1.974,0.074];
+function chiTable(ct) {
+  const rows = [];
+  for (let s = 0; s < 26; s++) {
+    const pl = caesar(ct, -s).toLowerCase().replace(/[^a-z]/g, '');
+    const cnt = new Array(26).fill(0);
+    for (const ch of pl) cnt[ch.charCodeAt(0) - 97]++;
+    let chi = 0;
+    for (let i = 0; i < 26; i++) { const e = EN[i] * pl.length / 100; if (e > 0) chi += (cnt[i] - e) ** 2 / e; }
+    rows.push({ s, chi });
+  }
+  return rows;
+}
+const bestShift = ct => chiTable(ct).reduce((a, b) => b.chi < a.chi ? b : a).s;
+
+function attackCaesar() {
+  const ct = document.getElementById('cipherIn').value;
+  const rows = chiTable(ct), best = bestShift(ct);
+  document.getElementById('caOut').innerHTML =
+    `<p><strong>Recovered key:</strong> <span class="badge">${best}</span> &rarr; <code>${caesar(ct, -best)}</code></p>
+     <table><thead><tr><th>Shift</th><th>&chi;&sup2;</th><th>Candidate plaintext</th></tr></thead><tbody>` +
+    rows.map(r => `<tr class="${r.s === best ? 'best' : ''}"><td>${r.s}</td><td>${r.chi.toFixed(1)}</td><td>${caesar(ct, -r.s)}</td></tr>`).join('') +
+    `</tbody></table>`;
+}
+
+const CORPUS = ("cryptography is the practice and study of techniques for secure communication in the presence of adversaries " +
+  "a cipher transforms readable plaintext into unreadable ciphertext using a secret key and only someone who knows the key " +
+  "can reverse the process in the classical world simple substitution ciphers were used by generals and diplomats but they " +
+  "were broken by analysts who noticed that every language has a characteristic pattern of letter frequencies the letter e " +
+  "appears far more often than the letter z and this simple observation is enough to defeat any cipher that only shifts the " +
+  "alphabet modern systems rely on mathematical problems that are believed to be hard such as the discrete logarithm on " +
+  "elliptic curves where the size of the key space makes any search completely impossible for current computers").replace(/[^a-z]/g, '');
+
+function runBenchmark() {
+  const lens = [10, 20, 30, 50, 100, 200], T = 200;
+  let h = '<table><thead><tr><th>Length (letters)</th><th>Success rate</th></tr></thead><tbody>';
+  for (const L of lens) {
+    let ok = 0;
+    for (let t = 0; t < T; t++) {
+      const st = Math.floor(Math.random() * (CORPUS.length - L));
+      const pl = CORPUS.slice(st, st + L), k = Math.floor(Math.random() * 26);
+      if (bestShift(caesar(pl, k)) === k) ok++;
+    }
+    h += `<tr><td>${L}</td><td>${(100 * ok / T).toFixed(1)}%</td></tr>`;
+  }
+  document.getElementById('benchOut').innerHTML = h + '</tbody></table>';
+}
+
+/* ===== Attack on the toy ECC: Baby-Step Giant-Step ===== */
+async function attackECC() {
+  const out = document.getElementById('atOut');
+  if (!lastECC) { out.innerHTML = '<p class="bad">Run the encryption in Tab 1 first.</p>'; return; }
+  const { Q, C1, C2 } = lastECC;         // only PUBLIC data is used
+  const m = 256, t0 = performance.now();
+  const baby = new Map(); let cur = null;
+  baby.set('inf', 0);
+  for (let j = 1; j < m; j++) { cur = add(cur, G); baby.set(key(cur), j); }
+  const step = neg(mul(BigInt(m), G));
+  let T = Q, found = null, ops = m;
+  for (let i = 0; i <= KEY_SPACE / m; i++) {
+    const j = baby.get(key(T));
+    if (j !== undefined) { found = BigInt(i * m + j); break; }
+    T = add(T, step); ops++;
+  }
+  if (found === null) { out.innerHTML = '<p class="bad">Key not found.</p>'; return; }
+  const S = mul(found, C1);
+  const dec = new TextDecoder().decode(xor(C2, await keystream(S, C2.length)));
+  out.innerHTML = `
+    <p><strong>Recovered d:</strong> <code>${found}</code>
+        ${found === lastECC.d ? '<span class="ok">&#10004; matches the real key</span>' : ''}</p>
+    <p><strong>Group operations:</strong> ~${ops} (brute force: up to ${KEY_SPACE}) &nbsp;|&nbsp;
+        <strong>Time:</strong> ${(performance.now() - t0).toFixed(0)} ms</p>
+    <p><strong>Decrypted message:</strong> <span class="badge">${dec}</span></p>`;
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+window.onload = () => { runCaesar(); runECC(); };
+</script>
+</body>
+</html>
