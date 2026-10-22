@@ -3,584 +3,620 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HMWK 1: Cryptographic Hash Functions &amp; Statistical Properties</title>
-  <!-- Chart.js for Statistical & Frequency Visualizations -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>HMWK 1: Private Key → Public Key (Elliptic-Curve Scalar Multiplication)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      /* Palette Chiara: Sfondo Bianco e Tonalità Bordeaux */
-      --bg: #ffffff;
-      --card-bg: #fffafb;
-      --card-alt: #f8f1f3;
-      --border: #e2cbd1;
-      --primary: #800020;       /* Bordeaux classico */
-      --primary-hover: #5c0017;
-      --accent: #9e2a4b;        /* Bordeaux/Rosewood luminoso */
-      --accent-light: #fbebf0;  /* Bordeaux chiarissimo per box e badge */
-      --warning: #d97706;
-      --danger: #dc2626;
-      --text: #1a0f12;          /* Testo scuro ad alto contrasto */
-      --text-muted: #5e4a50;
+      --bg:#ffffff; --card-bg:#fffafb; --card-alt:#f8f1f3; --border:#e2cbd1;
+      --primary:#800020; --primary-hover:#5c0017; --accent:#9e2a4b;
+      --accent-light:#fbebf0; --text:#1a0f12; --text-muted:#5e4a50;
+      --ok:#15803d; --bad:#dc2626; --warning:#d97706;
     }
-    * { 
-      box-sizing: border-box; margin: 0; padding: 0; 
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 24px;
-    }
-    .container { max-width: 1240px; margin: 0 auto; }
-    header { text-align: center; margin-bottom: 24px; }
-    header h1 { font-size: 2.1rem; color: var(--primary); margin-bottom: 8px; font-weight: 700; }
-    header p { color: var(--text-muted); font-size: 1.05rem; }
-
-    /* Theoretical Overview Banner */
-    .overview-banner {
-      background: linear-gradient(135deg, var(--card-bg) 0%, var(--accent-light) 100%);
-      border: 1px solid var(--border);
-      border-left: 5px solid var(--primary);
-      border-radius: 10px;
-      padding: 22px 26px;
-      margin-bottom: 24px;
-    }
-    .overview-banner h2 {
-      font-size: 1.25rem;
-      color: var(--primary);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .overview-banner p { font-size: 0.95rem; color: var(--text); margin-bottom: 10px; }
-    .overview-banner p:last-child { margin-bottom: 0; }
-
-    /* Single-line Navigation Tabs */
-    .nav-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-      border-bottom: 2px solid var(--border);
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      scrollbar-width: thin;
-    }
-    .nav-tab {
-      padding: 10px 16px;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 0.92rem;
-      font-weight: 600;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .nav-tab:hover { color: var(--primary); }
-    .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 850px) { .grid-2 { grid-template-columns: 1fr; } }
-
-    .card {
-      background: var(--card-bg); 
-      border: 1px solid var(--border);
-      border-radius: 10px; 
-      padding: 22px; 
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 12px; }
-    .card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 8px; }
-
-    label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; }
-    input[type="text"], select, textarea {
-      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: #ffffff; color: var(--text); font-size: 0.95rem; margin-bottom: 12px;
-    }
-    input[type="text"]:focus, select:focus, textarea:focus {
-      outline: 2px solid var(--primary);
-    }
-    .btn {
-      padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;
-      background: var(--primary); color: #ffffff; transition: all 0.2s;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #f0e1e5; color: var(--text); margin-left: 8px; }
-    .btn-secondary:hover { background: var(--border); }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
-    th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
-    th { background: var(--accent-light); color: var(--primary); }
-    tr:nth-child(even) { background: var(--card-alt); }
-
-    .badge {
-      display: inline-block; padding: 4px 8px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: bold; background: var(--border); color: var(--primary);
-    }
-    .badge-accent { 
-      background: var(--accent-light); 
-      color: var(--primary); 
-      border: 1px solid #e0b3c0; 
-    }
-    .badge-warning { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
-
-    pre, code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      background: var(--accent-light); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;
-      word-break: break-all; color: var(--primary); border: 1px solid #f3d5de;
-    }
-    .flow-step {
-      background: var(--card-alt); border-left: 4px solid var(--primary);
-      padding: 14px; margin-bottom: 14px; border-radius: 6px;
-    }
-    .flow-step h4 { color: var(--primary); margin-bottom: 6px; font-size: 1rem; }
-    .flow-step p { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; }
-    .chart-container { position: relative; height: 260px; width: 100%; margin-top: 15px; }
-
-    .timeline {
-      position: relative; border-left: 3px solid var(--primary); margin-left: 15px; padding-left: 20px;
-    }
-    .timeline-item { position: relative; margin-bottom: 20px; }
-    .timeline-item::before {
-      content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px;
-      border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
-    }
-    .timeline-date { font-weight: bold; color: var(--primary); font-size: 0.9rem; }
-    .timeline-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; }
-    .timeline-desc { font-size: 0.9rem; color: var(--text-muted); }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--text); line-height:1.6; padding:24px; }
+    .container { max-width:1240px; margin:0 auto; }
+    header { text-align:center; margin-bottom:24px; }
+    header h1 { font-size:2.1rem; color:var(--primary); margin-bottom:8px; }
+    header p { color:var(--text-muted); font-size:1.05rem; }
+    .overview-banner { background:linear-gradient(135deg,var(--card-bg),var(--accent-light));
+      border:1px solid var(--border); border-left:5px solid var(--primary);
+      border-radius:10px; padding:22px 26px; margin-bottom:24px; }
+    .overview-banner h2 { font-size:1.25rem; color:var(--primary); margin-bottom:10px; }
+    .overview-banner p { font-size:.95rem; margin-bottom:10px; }
+    .overview-banner p:last-child { margin-bottom:0; }
+    .formula { font-family:ui-monospace,Menlo,Consolas,monospace; background:#fff; padding:10px;
+      border-radius:6px; color:var(--primary); border:1px solid var(--border); }
+    .nav-tabs { display:flex; gap:10px; margin-bottom:24px; border-bottom:2px solid var(--border);
+      flex-wrap:nowrap; overflow-x:auto; }
+    .nav-tab { padding:10px 16px; background:transparent; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:.92rem; font-weight:600; border-bottom:3px solid transparent;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-tab:hover { color:var(--primary); }
+    .nav-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .tab-content { display:none; } .tab-content.active { display:block; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media (max-width:850px) { .grid-2 { grid-template-columns:1fr; } }
+    .card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+      padding:22px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    .card h2 { font-size:1.25rem; color:var(--primary); margin-bottom:12px; }
+    .card h3 { font-size:1.05rem; margin-bottom:8px; }
+    .card p, .card li { font-size:.92rem; margin-bottom:8px; }
+    .card ul { margin-left:20px; }
+    label { display:block; font-weight:500; font-size:.9rem; margin-bottom:6px; }
+    input[type=text], input[type=number], select { width:100%; padding:10px; border-radius:6px;
+      border:1px solid var(--border); background:#fff; color:var(--text); font-size:.95rem; margin-bottom:12px; }
+    input[type=range] { width:100%; margin-bottom:12px; accent-color:var(--primary); }
+    .btn { padding:10px 16px; border-radius:6px; font-weight:600; cursor:pointer; border:none;
+      background:var(--primary); color:#fff; margin:0 6px 8px 0; }
+    .btn:hover { background:var(--primary-hover); }
+    .btn-secondary { background:#f0e1e5; color:var(--text); }
+    .btn-secondary:hover { background:var(--border); }
+    table { width:100%; border-collapse:collapse; margin-top:14px; font-size:.88rem; }
+    th, td { padding:8px; border:1px solid var(--border); text-align:left; vertical-align:top; }
+    th { background:var(--accent-light); color:var(--primary); }
+    tr:nth-child(even) { background:var(--card-alt); }
+    tr.cur { background:#fdecc8 !important; font-weight:600; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:4px; font-size:.85rem; font-weight:bold;
+      background:var(--accent-light); color:var(--primary); border:1px solid #e0b3c0; word-break:break-all; }
+    code { font-family:ui-monospace,Menlo,Consolas,monospace; background:var(--accent-light);
+      padding:2px 6px; border-radius:4px; font-size:.82rem; word-break:break-all;
+      color:var(--primary); border:1px solid #f3d5de; }
+    .flow-step { background:var(--card-alt); border-left:4px solid var(--primary);
+      padding:14px; margin-bottom:14px; border-radius:6px; }
+    .flow-step h4 { color:var(--primary); margin-bottom:6px; }
+    .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+    .out { margin-top:10px; }
+    .chart-container { position:relative; height:260px; width:100%; margin-top:10px; }
+    canvas#cv { width:100%; max-width:520px; height:auto; background:#fff; border:1px solid var(--border);
+      border-radius:8px; display:block; margin:0 auto; }
+    .scroll { max-height:340px; overflow:auto; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Cryptographic Hash Functions &amp; Statistical Properties</h1>
-      <p>Exploring One-Way Compression, Uniform Distribution &amp; The Avalanche Effect</p>
-    </header>
+<div class="container">
+  <header>
+    <h1>Private Key &rarr; Public Key in Ethereum</h1>
+    <p>Homework 1 &ndash; Elliptic-Curve Scalar Multiplication as a One-Way Function</p>
+  </header>
 
-    <!-- THEORETICAL OVERVIEW BANNER -->
-    <div class="overview-banner">
-      <h2>&#128218; Theoretical Overview &amp; Foundations</h2>
-      <p>
-        A <strong>Cryptographic Hash Function</strong> is a deterministic algorithm that maps an arbitrary-length input string to a fixed-size byte array. To be cryptographically secure, a hash algorithm must satisfy three core security guarantees: <strong>Preimage Resistance</strong> (one-way property), <strong>Second Preimage Resistance</strong> (target collision resistance), and <strong>Collision Resistance</strong>.
-      </p>
-      <p style="font-family: monospace; background: #ffffff; padding: 10px; border-radius: 6px; color: var(--primary); border: 1px solid var(--border);">
-        Input Text (Arbitrary Length) &rarr; Hash Algorithm (SHA-256 / Keccak-256) &rarr; Fixed 256-bit Hexadecimal Digest
-      </p>
-      <p>
-        <strong>Strict Avalanche Criterion (SAC):</strong> A crucial statistical property requiring that if a single bit in the input message is flipped, each bit of the resulting output hash must change with a 50% probability, rendering outputs pseudorandom and uncorrelated.
-      </p>
-    </div>
+  <div class="overview-banner">
+    <h2>&#128218; Project Description</h2>
+    <p>
+      Elliptic-curve scalar multiplication is easy in one direction and hard in the other:
+      given a private key <strong>k</strong> and a base point <strong>G</strong>, the public key
+      <strong>Q = kG</strong> is computed quickly, but recovering <strong>k</strong> from <strong>Q</strong> is the
+      <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong>. Ethereum uses the curve <strong>secp256k1</strong>.
+    </p>
+    <p class="formula">private key k &rarr; Q = k&middot;G (public key) &rarr; Keccak-256(Q) &rarr; Ethereum address</p>
+    <p>
+      This page uses the toy curve <code>y&sup2; = x&sup3; + 7 (mod 17)</code> with <code>G = (1, 5)</code>
+      and <code>k = 6</code>. It adds a slowed-down visualizer, a statistical exploration on larger toy curves, and a real
+      secp256k1 / Ethereum-address demo. The goal is understanding, not a real cryptosystem.
+    </p>
+  </div>
 
-    <!-- CLEAN SINGLE-LINE TABS -->
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('tab-hashing')">1. Hash Computing Lab</button>
-      <button class="nav-tab" onclick="switchTab('tab-avalanche')">2. Avalanche &amp; SAC Analysis</button>
-      <button class="nav-tab" onclick="switchTab('tab-properties')">3. Security Foundations</button>
-      <button class="nav-tab" onclick="switchTab('tab-history')">4. Historical Context</button>
-    </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('t1',this)">1. Toy Curve &amp; Public Key</button>
+    <button class="nav-tab" onclick="switchTab('t2',this)">2. Slow-Motion Visualizer</button>
+    <button class="nav-tab" onclick="switchTab('t3',this)">3. Statistical Exploration</button>
+    <button class="nav-tab" onclick="switchTab('t4',this)">4. One-Way Function vs Hash</button>
+    <button class="nav-tab" onclick="switchTab('t5',this)">5. Real secp256k1 &amp; Ethereum</button>
+  </div>
 
-    <!-- TAB 1: INTERACTIVE HASHING LAB -->
-    <div id="tab-hashing" class="tab-content active">
-      <div class="grid-2">
-        <div class="card">
-          <h2>Input &amp; Algorithm Configuration</h2>
-          <label for="inputMessage">Input Message:</label>
-          <input type="text" id="inputMessage" value="Hello Cryptography World" oninput="calculateHashes()">
-
-          <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-            <button class="btn" onclick="calculateHashes()">Compute Hashes</button>
-            <button class="btn btn-secondary" onclick="generateRandomInput()">Random String</button>
-          </div>
-
-          <div class="card" style="margin-top: 15px; background: var(--card-alt);">
-            <h3>Calculated Hash Digest</h3>
-            <p style="margin-top: 6px;"><span id="hashOutput" class="badge badge-accent" style="font-size: 1.05rem; word-break: break-all;">Computing...</span></p>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
-              Digest size: 256 bits (64 hexadecimal characters).
-            </p>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Multi-Algorithm Comparison</h2>
-          
-          <div class="flow-step">
-            <h4>SHA-256 (NIST FIPS 180-4)</h4>
-            <p>Standard Merkle&ndash;Damg&aring;rd construction utilizing 32-bit word operations:</p>
-            <code id="sha256Digest">Calculating...</code>
-          </div>
-
-          <div class="flow-step">
-            <h4>Keccak-256 (Ethereum Standard)</h4>
-            <p>Sponge construction operating over a 1600-bit state (Keccak-f[1600]):</p>
-            <code id="keccakDigest">Calculating...</code>
-          </div>
-        </div>
+  <!-- TAB 1 -->
+  <div id="t1" class="tab-content active">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Toy Curve Definition</h2>
+        <div class="flow-step"><h4>Curve &amp; base point</h4>
+          <p><code>y&sup2; = x&sup3; + 7 (mod 17)</code>, <code>G = (1, 5)</code></p>
+          <p id="curveCheck"></p></div>
+        <div class="flow-step"><h4>Point addition (a = 0)</h4>
+          <p>P &ne; Q: <code>&lambda; = (y&#8322;&minus;y&#8321;)/(x&#8322;&minus;x&#8321;)</code><br>
+             P = Q: <code>&lambda; = 3x&sup2;/(2y)</code><br>
+             <code>x&#8323; = &lambda;&sup2;&minus;x&#8321;&minus;x&#8322;</code>,
+             <code>y&#8323; = &lambda;(x&#8321;&minus;x&#8323;)&minus;y&#8321;</code> (all mod 17).
+             Division means multiplying by the modular inverse.</p></div>
+        <label for="toyK">Private key k:</label>
+        <input type="number" id="toyK" value="6" min="1" max="100000">
+        <button class="btn" onclick="runToy()">Compute Q = kG</button>
+        <div class="out" id="toyFinal"></div>
+      </div>
+      <div class="card">
+        <h2>G, 2G, 3G, &hellip; kG (sequential)</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>i</th><th>iG</th><th>&lambda;</th><th>Operation</th></tr></thead>
+          <tbody id="seqBody"></tbody>
+        </table></div>
+        <p id="seqNote" style="margin-top:8px;color:var(--text-muted)"></p>
       </div>
     </div>
+    <div class="card">
+      <h2>Faster method: Double-and-Add</h2>
+      <p>Scan the bits of k from the most significant one: always <em>double</em>, and <em>add G</em> when the bit is 1.
+      Cost O(log k) instead of O(k).</p>
+      <div id="dblOut"></div>
+    </div>
+  </div>
 
-    <!-- TAB 2: AVALANCHE & SAC ANALYSIS -->
-    <div id="tab-avalanche" class="tab-content">
+  <!-- TAB 2 -->
+  <div id="t2" class="tab-content">
+    <div class="grid-2">
       <div class="card">
-        <h2>Statistical Distribution &amp; Avalanche Effect Visualizer</h2>
-        <p style="color: var(--text-muted);">
-          Testing uniform byte distribution and verifying the Strict Avalanche Criterion across small perturbations.
+        <h2>Curve over &#120125;<sub>17</sub></h2>
+        <canvas id="cv" width="520" height="520"></canvas>
+        <p style="margin-top:10px;color:var(--text-muted)">
+          <span style="color:#800020">&#9679;</span> G &nbsp;
+          <span style="color:#d97706">&#9679;</span> operands A, B &nbsp;
+          <span style="color:#15803d">&#9679;</span> result R &nbsp;
+          <span style="color:#d9b8c1">&#9679;</span> curve points. Dashed lines show A &rarr; R and B &rarr; R. The geometry is not a
+          real line over a finite field; it only shows which points produce the result.
         </p>
-
-        <div class="grid-2" style="margin-top: 15px;">
-          <div>
-            <h3>Hash Nibble Frequency Distribution</h3>
-            <div class="chart-container">
-              <canvas id="nibbleChart"></canvas>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              Uniformity test across all 16 hexadecimal nibble values [0 &ndash; f].
-            </p>
-          </div>
-
-          <div>
-            <h3>Bit Flip Sensitivity (Avalanche Test)</h3>
-            <div class="chart-container">
-              <canvas id="avalancheChart"></canvas>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-              Measuring bit variations across single character modifications.
-            </p>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top: 20px; background: var(--card-alt);">
-          <h3>Strict Avalanche Criterion (SAC) Output Table</h3>
-          <p style="font-size: 0.9rem; margin-bottom: 10px;">
-            Comparing output hashes before and after a <strong>1-bit character perturbation</strong>:
-          </p>
-          <table>
-            <thead>
-              <tr><th>Algorithm</th><th>Original Hash (First 16 hex)</th><th>Perturbed Hash (1-char shift)</th><th>Bit Difference (Hamming %)</th></tr>
-            </thead>
-            <tbody id="avalancheTableBody"></tbody>
-          </table>
-          <p style="font-size: 0.85rem; color: var(--primary); margin-top: 8px;">
-            &#10004; High-quality cryptographic hash functions flip approximately 50% of total output bits.
-          </p>
-        </div>
       </div>
-    </div>
-
-    <!-- TAB 3: PRIMITIVE FOUNDATIONS -->
-    <div id="tab-properties" class="tab-content">
       <div class="card">
-        <h2>Core Properties of Cryptographic Hash Functions</h2>
-        <p style="color: var(--text-muted); margin-bottom: 14px;">
-          Essential guarantees required for cryptographic security in signatures, proofs, and blockchains:
-        </p>
-
-        <table>
-          <thead>
-            <tr><th>Security Property</th><th>Mathematical Definition</th><th>Practical Security Implication</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Preimage Resistance</strong></td>
-              <td>Given $h$, computationally infeasible to find $m$ such that $H(m) = h$.</td>
-              <td>Prevents attackers from recovering sensitive original passwords or secret keys from stored digests.</td>
-            </tr>
-            <tr>
-              <td><strong>Second Preimage Resistance</strong></td>
-              <td>Given $m_1$, infeasible to find $m_2 \neq m_1$ such that $H(m_1) = H(m_2)$.</td>
-              <td>Ensures a attacker cannot substitute a malicious document for an already signed legitimate message.</td>
-            </tr>
-            <tr>
-              <td><strong>Collision Resistance</strong></td>
-              <td>Infeasible to find any pair $(m_1, m_2)$ such that $H(m_1) = H(m_2)$.</td>
-              <td>Guarantees unique digital identity in cryptographic proofs, Merkel trees, and transaction IDs.</td>
-            </tr>
-            <tr>
-              <td><strong>Determinism &amp; Efficiency</strong></td>
-              <td>Same input always produces identical output in $O(N)$ time.</td>
-              <td>Allows fast verification across distributed networks without high computational overhead.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB 4: CHRONOLOGICAL CONTEXT -->
-    <div id="tab-history" class="tab-content">
-      <div class="card">
-        <h2>Historical Evolution of Cryptographic Hashing</h2>
-        <div class="timeline" style="margin-top: 20px;">
-          <div class="timeline-item">
-            <div class="timeline-date">1990</div>
-            <div class="timeline-title">MD4 Introduced by Ronald Rivest</div>
-            <div class="timeline-desc">One of the earliest dedicated hash functions. Quickly demonstrated vulnerabilities to collision attacks.</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-date">1992</div>
-            <div class="timeline-title">MD5 Published</div>
-            <div class="timeline-desc">Widely adopted 128-bit hash function. Broken in the mid-2000s due to theoretical and practical collision exploits.</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-date">1995</div>
-            <div class="timeline-title">SHA-1 Standardized by NIST</div>
-            <div class="timeline-desc">160-bit hash standard. Deprecated in 2011 after practical collision generation attacks were demonstrated.</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-date">2001</div>
-            <div class="timeline-title">SHA-2 Family Published</div>
-            <div class="timeline-desc">Introduced SHA-256 and SHA-512 based on the Merkle&ndash;Damg&aring;rd design, remaining a widely used industry standard.</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-date">2015</div>
-            <div class="timeline-title">SHA-3 (Keccak) Standardized (FIPS 202)</div>
-            <div class="timeline-desc">Introduced the sponge construction architecture, offering structurally distinct protection against Merkle&ndash;Damg&aring;rd attack vectors.</div>
-          </div>
-        </div>
+        <h2>Controls</h2>
+        <label for="vizK">Private key k:</label>
+        <input type="number" id="vizK" value="6" min="2" max="200">
+        <label for="vizMode">Algorithm:</label>
+        <select id="vizMode">
+          <option value="seq">Sequential: G, 2G, 3G, &hellip;, kG</option>
+          <option value="dbl">Double-and-Add</option>
+        </select>
+        <label for="vizSpeed">Delay per step: <span id="vizSpeedVal">900</span> ms</label>
+        <input type="range" id="vizSpeed" min="150" max="2000" step="50" value="900">
+        <button class="btn" onclick="vizPlay()">&#9654; Play</button>
+        <button class="btn btn-secondary" onclick="vizPause()">&#10074;&#10074; Pause</button>
+        <button class="btn btn-secondary" onclick="vizStep()">Step &raquo;</button>
+        <button class="btn btn-secondary" onclick="vizReset()">Reset</button>
+        <div class="out" id="vizInfo"></div>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>Step</th><th>&lambda;</th><th>Result</th></tr></thead>
+          <tbody id="vizLog"></tbody>
+        </table></div>
       </div>
     </div>
   </div>
 
-  <script>
-    // --- CRYPTOGRAPHIC IMPLEMENTATION & HELPERS ---
+  <!-- TAB 3 -->
+  <div id="t3" class="tab-content">
+    <div class="card">
+      <h2>Statistical Exploration of kG</h2>
+      <p style="color:var(--text-muted)">The curve of order 9 is too small for statistics, so larger primes are offered
+      (same equation <code>y&sup2; = x&sup3; + 7</code>). The program computes every multiple kG for k = 1 &hellip; n&minus;1,
+      where n is the order of G.</p>
+      <div class="grid-2">
+        <div>
+          <label for="stP">Prime p:</label>
+          <select id="stP" onchange="setBase()">
+            <option value="17">17 (toy curve of the homework)</option>
+            <option value="1009">1009</option>
+            <option value="10007" selected>10007</option>
+            <option value="65521">65521</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label for="stGx">Base point G<sub>x</sub>:</label><input type="number" id="stGx"></div>
+          <div><label for="stGy">Base point G<sub>y</sub>:</label><input type="number" id="stGy"></div>
+        </div>
+      </div>
+      <button class="btn" onclick="runStats()">Run Experiment</button>
+      <div class="out" id="stSummary"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>Distribution of x (16 equal bins)</h3><div class="chart-container"><canvas id="chHist"></canvas></div></div>
+      <div class="card"><h3>Frequency of 1 for each bit of x (%)</h3><div class="chart-container"><canvas id="chBits"></canvas></div></div>
+      <div class="card"><h3>Correlation: k vs x(kG)</h3><div class="chart-container"><canvas id="chScatter"></canvas></div></div>
+      <div class="card"><h3>Avalanche: flip one bit of k, % of x bits that change</h3><div class="chart-container"><canvas id="chAval"></canvas></div></div>
+    </div>
+  </div>
 
-    // 1. Keccak-256 Pure JS Implementation
-    const RC = [
-      0x0000000000000001n, 0x0000000000008082n, 0x800000000000808an, 0x8000000080008000n,
-      0x000000000000808bn, 0x0000000080000001n, 0x8000000080008081n, 0x8000000000008009n,
-      0x000000000000008an, 0x0000000000000088n, 0x0000000080008009n, 0x000000008000000an,
-      0x000000008000808bn, 0x800000000000008bn, 0x8000000000008089n, 0x8000000000008003n,
-      0x8000000000008002n, 0x8000000000000080n, 0x000000000000800an, 0x800000008000000an,
-      0x8000000080008081n, 0x8000000000008080n, 0x0000000080000001n, 0x8000000080008008n
-    ];
+  <!-- TAB 4 -->
+  <div id="t4" class="tab-content">
+    <div class="card">
+      <h2>Which properties matter for what?</h2>
+      <table>
+        <thead><tr><th>Property</th><th>One-way function (kG)</th><th>Cryptographic hash</th><th>Meaningful for&hellip;</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Determinism</strong></td><td>Yes</td><td>Yes</td><td>Both</td></tr>
+          <tr><td><strong>One-wayness</strong></td><td>Hardness of ECDLP (~2<sup>128</sup> steps on secp256k1)</td><td>Preimage resistance</td><td>Both, with different assumptions</td></tr>
+          <tr><td><strong>Apparent uniformity of x, y and bits</strong></td><td>Roughly, but x &lt; p and each x appears twice (P and &minus;P)</td><td>Output indistinguishable from random</td><td>Useful sanity check for both, not a proof</td></tr>
+          <tr><td><strong>Correlation input/output</strong></td><td>Hidden only by the hardness of ECDLP; the group law is exact</td><td>Must be negligible</td><td>Both</td></tr>
+          <tr><td><strong>Avalanche effect (SAC)</strong></td><td>Not a design goal; Q(k+1) = Q(k) + G is algebraically predictable</td><td>Core design goal: each output bit flips with probability 1/2</td><td>Specific to hash functions</td></tr>
+          <tr><td><strong>Input length</strong></td><td>Scalar of fixed size (&le; 256 bits)</td><td>Arbitrary length &rarr; fixed digest</td><td>Specific to hash functions</td></tr>
+          <tr><td><strong>Collision resistance</strong></td><td>Not required: k &rarr; Q is injective modulo the order</td><td>Required (compression)</td><td>Specific to hash functions</td></tr>
+          <tr><td><strong>Algebraic structure</strong></td><td>Homomorphic: (k&#8321;+k&#8322;)G = k&#8321;G + k&#8322;G, which enables signatures and key exchange</td><td>None (a feature, not a flaw)</td><td>Specific to ECC</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px"><strong>Conclusion.</strong> Statistical tests can reveal weaknesses but cannot prove one-wayness: kG looks random yet is
+      computed with a simple public formula. Its security comes from the hardness of ECDLP, not from statistical mixing. In Ethereum both worlds
+      are chained: the ECC one-way map k &rarr; Q, then Keccak-256 to derive the address.</p>
+    </div>
+  </div>
 
-    const ROTC = [
-      [0n, 36n, 3n, 41n, 18n],
-      [1n, 44n, 10n, 45n, 2n],
-      [62n, 6n, 43n, 15n, 61n],
-      [28n, 55n, 25n, 21n, 56n],
-      [27n, 20n, 39n, 8n, 14n]
-    ];
+  <!-- TAB 5 -->
+  <div id="t5" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Real secp256k1 &rarr; Ethereum address</h2>
+        <p>Curve: <code>y&sup2; = x&sup3; + 7</code> over p = 2<sup>256</sup> &minus; 2<sup>32</sup> &minus; 977. For learning only: never use keys generated in a web page.</p>
+        <label for="ethK">Private key (hex, 1 &le; k &lt; n):</label>
+        <input type="text" id="ethK" value="1">
+        <button class="btn" onclick="deriveEth()">Derive</button>
+        <button class="btn btn-secondary" onclick="randomEth()">Random key</button>
+        <div class="out" id="ethOut"></div>
+      </div>
+      <div class="card">
+        <h2>Forward vs backward</h2>
+        <div class="flow-step"><h4>Forward (easy)</h4>
+          <p>About 256 doublings plus roughly 128 additions, so <em>microseconds</em>. The exact counts for your key appear on the left.</p></div>
+        <div class="flow-step"><h4>Backward (infeasible)</h4>
+          <p>The best generic attack on ECDLP (Pollard&rsquo;s rho) needs about &radic;n &asymp; 2<sup>128</sup> group operations.</p></div>
+        <p>Test vector: private key <code>1</code> gives <code>Q = G</code> and address <code>0x7e5f4552091a69125d5dfcb7b8c2659029395bdf</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-    function rotl64(x, r) {
-      return ((x << r) | (x >> (64n - r))) & 0xFFFFFFFFFFFFFFFFn;
+<script>
+/* ================= Toy-curve arithmetic (small primes, Number) ================= */
+const mod = (a, p) => ((a % p) + p) % p;
+function inv(a, p) {
+  let [r0, r1] = [mod(a, p), p], [s0, s1] = [1, 0];
+  while (r1) { const q = Math.floor(r0 / r1); [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
+  return mod(s0, p);
+}
+/* returns {R, lam}; null = point at infinity O; curve y^2 = x^3 + 7 (a = 0) */
+function eadd(A, B, p) {
+  if (!A) return { R: B };
+  if (!B) return { R: A };
+  let lam;
+  if (A.x === B.x) {
+    if (mod(A.y + B.y, p) === 0) return { R: null };
+    lam = mod(3 * A.x * A.x * inv(2 * A.y, p), p);
+  } else lam = mod((B.y - A.y) * inv(B.x - A.x, p), p);
+  const x = mod(lam * lam - A.x - B.x, p);
+  const y = mod(lam * (A.x - x) - A.y, p);
+  return { R: { x, y }, lam };
+}
+const fmt = pt => pt ? `(${pt.x}, ${pt.y})` : 'O (&infin;)';
+const same = (a, b) => (!a && !b) || (a && b && a.x === b.x && a.y === b.y);
+const TP = 17, TG = { x: 1, y: 5 };
+
+function toyMul(k, G, p) {
+  const bits = k.toString(2);
+  let R = G;
+  const tr = [`bit ${bits[0]} (MSB): R = G = ${fmt(G)}`];
+  for (let i = 1; i < bits.length; i++) {
+    R = eadd(R, R, p).R;
+    let s = `bit ${bits[i]}: double &rarr; ${fmt(R)}`;
+    if (bits[i] === '1') { R = eadd(R, G, p).R; s += `; add G &rarr; ${fmt(R)}`; }
+    tr.push(s);
+  }
+  return { R, tr, bits };
+}
+function orderOf(G, p) {
+  let cur = G, n = 1;
+  while (n < 300000) { const r = eadd(cur, G, p).R; n++; if (!r) return n; cur = r; }
+  return n;
+}
+
+/* ================= Tab 1 ================= */
+function runToy() {
+  const k = parseInt(document.getElementById('toyK').value);
+  const fin = document.getElementById('toyFinal');
+  if (!(k >= 1 && k <= 100000)) { fin.innerHTML = '<p class="bad">Choose an integer k between 1 and 100000.</p>'; return; }
+  const p = TP;
+  const lhs = mod(TG.y * TG.y, p), rhs = mod(TG.x ** 3 + 7, p);
+  document.getElementById('curveCheck').innerHTML =
+    `Check: y&sup2; = ${TG.y}&sup2; &equiv; ${lhs}, x&sup3; + 7 = ${rhs} (mod ${p}) ` +
+    (lhs === rhs ? '<span class="ok">&#10004; G is on the curve</span>' : '<span class="bad">not on curve</span>');
+
+  const lim = Math.min(k, 40);
+  let cur = TG, rows = `<tr><td>1</td><td>${fmt(TG)}</td><td>&mdash;</td><td>G</td></tr>`;
+  for (let i = 2; i <= lim; i++) {
+    const r = eadd(cur, TG, p);
+    const op = !cur ? 'O + G = G' : (same(cur, TG) ? 'doubling G + G' : `${i - 1}G + G`);
+    rows += `<tr><td>${i}</td><td>${fmt(r.R)}</td><td>${r.lam === undefined ? '&mdash;' : r.lam}</td><td>${op}</td></tr>`;
+    cur = r.R;
+  }
+  document.getElementById('seqBody').innerHTML = rows;
+  const n = orderOf(TG, p);
+  document.getElementById('seqNote').innerHTML =
+    `Order of G: <strong>${n}</strong> (${n}G = O), so the sequence repeats with period ${n}.` +
+    (k > lim ? ` Only the first ${lim} rows are shown.` : '');
+
+  const res = toyMul(k, TG, p);
+  document.getElementById('dblOut').innerHTML =
+    `<p>k = ${k} = <code>${res.bits}</code> in binary</p><ul>` + res.tr.map(s => `<li>${s}</li>`).join('') + '</ul>';
+  fin.innerHTML = `<p><strong>TOY PUBLIC KEY</strong> Q = ${k}&middot;G = <span class="badge">${fmt(res.R)}</span></p>
+    <p style="color:var(--text-muted)">Effective scalar: k mod ${n} = ${k % n}. Brute-forcing k would take at most ${n} steps.</p>`;
+}
+
+/* ================= Tab 2: visualizer ================= */
+const CV_POINTS = [];
+for (let x = 0; x < TP; x++) for (let y = 0; y < TP; y++)
+  if (mod(y * y, TP) === mod(x ** 3 + 7, TP)) CV_POINTS.push({ x, y });
+
+let VS = { steps: [], i: 0, timer: null };
+function buildSteps(k, mode) {
+  const p = TP, steps = [{ label: '1G = G', a: null, b: null, r: TG, lam: null }];
+  if (mode === 'seq') {
+    let cur = TG;
+    for (let i = 2; i <= k; i++) {
+      const e = eadd(cur, TG, p);
+      steps.push({ label: `${i}G = ${i - 1}G + G`, a: cur, b: TG, r: e.R, lam: e.lam });
+      cur = e.R;
     }
-
-    function keccakF1600(state) {
-      for (let round = 0; round < 24; round++) {
-        const C = new Array(5);
-        for (let x = 0; x < 5; x++) {
-          C[x] = state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20];
-        }
-        const D = new Array(5);
-        for (let x = 0; x < 5; x++) {
-          D[x] = C[(x + 4) % 5] ^ rotl64(C[(x + 1) % 5], 1n);
-        }
-        for (let x = 0; x < 5; x++) {
-          for (let y = 0; y < 5; y++) {
-            state[x + 5 * y] ^= D[x];
-          }
-        }
-        const B = new Array(25);
-        for (let x = 0; x < 5; x++) {
-          for (let y = 0; y < 5; y++) {
-            B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl64(state[x + 5 * y], ROTC[x][y]);
-          }
-        }
-        for (let x = 0; x < 5; x++) {
-          for (let y = 0; y < 5; y++) {
-            state[x + 5 * y] = (B[x + 5 * y] ^ ((~B[(x + 1) % 5 + 5 * y]) & B[(x + 2) % 5 + 5 * y])) & 0xFFFFFFFFFFFFFFFFn;
-          }
-        }
-        state[0] ^= RC[round];
+  } else {
+    const bits = k.toString(2); let R = TG, mult = 1;
+    for (let i = 1; i < bits.length; i++) {
+      let e = eadd(R, R, p); mult *= 2;
+      steps.push({ label: `double: ${mult}G = 2&middot;${mult / 2}G`, a: R, b: R, r: e.R, lam: e.lam });
+      R = e.R;
+      if (bits[i] === '1') {
+        e = eadd(R, TG, p); mult += 1;
+        steps.push({ label: `add G: ${mult}G = ${mult - 1}G + G`, a: R, b: TG, r: e.R, lam: e.lam });
+        R = e.R;
       }
     }
+  }
+  return steps;
+}
+const M = 36, CELL = (520 - 2 * M) / 16;
+const PX = x => M + x * CELL, PY = y => 520 - M - y * CELL;
+function dot(ctx, pt, r, color, label) {
+  ctx.beginPath(); ctx.arc(PX(pt.x), PY(pt.y), r, 0, 7); ctx.fillStyle = color; ctx.fill();
+  if (label) { ctx.fillStyle = '#1a0f12'; ctx.font = 'bold 12px sans-serif'; ctx.fillText(label, PX(pt.x) + 10, PY(pt.y) - 8); }
+}
+function line(ctx, a, b, color) {
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(PX(a.x), PY(a.y)); ctx.lineTo(PX(b.x), PY(b.y)); ctx.stroke(); ctx.setLineDash([]);
+}
+function drawViz() {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, 520, 520);
+  ctx.strokeStyle = '#f0e1e5'; ctx.lineWidth = 1; ctx.fillStyle = '#5e4a50'; ctx.font = '10px sans-serif';
+  for (let i = 0; i < TP; i++) {
+    ctx.beginPath(); ctx.moveTo(PX(i), PY(0)); ctx.lineTo(PX(i), PY(16)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PX(0), PY(i)); ctx.lineTo(PX(16), PY(i)); ctx.stroke();
+    ctx.fillText(i, PX(i) - 3, 520 - M + 16); ctx.fillText(i, M - 20, PY(i) + 3);
+  }
+  ctx.fillText('x', 505, 520 - M + 16); ctx.fillText('y', M - 20, 20);
+  CV_POINTS.forEach(pt => dot(ctx, pt, 5, '#d9b8c1'));
+  const S = VS.steps[VS.i];
+  for (let j = 0; j < VS.i; j++) if (VS.steps[j].r) {
+    const t = VS.steps[j].r;
+    ctx.beginPath(); ctx.arc(PX(t.x), PY(t.y), 8, 0, 7); ctx.strokeStyle = '#9e2a4b'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  dot(ctx, TG, 7, '#800020', 'G');
+  if (S.a && S.r) { line(ctx, S.a, S.r, '#d97706'); line(ctx, S.b, S.r, '#d97706'); }
+  if (S.a) { dot(ctx, S.a, 8, '#d97706', same(S.a, S.b) ? 'A = B' : 'A'); if (!same(S.a, S.b)) dot(ctx, S.b, 8, '#d97706', 'B'); }
+  if (S.r) dot(ctx, S.r, 9, '#15803d', 'R');
+  else { ctx.fillStyle = '#dc2626'; ctx.font = 'bold 16px sans-serif'; ctx.fillText('R = O (point at infinity)', 150, 28); }
+  const k = VS.steps.length;
+  document.getElementById('vizInfo').innerHTML =
+    `<p>Step <strong>${VS.i}</strong> / ${k - 1}: ${S.label} &rarr; <span class="badge">${fmt(S.r)}</span></p>`;
+  let rows = '';
+  for (let j = 0; j <= VS.i; j++) {
+    const s = VS.steps[j];
+    rows += `<tr class="${j === VS.i ? 'cur' : ''}"><td>${j}</td><td>${s.label}</td><td>${s.lam === null || s.lam === undefined ? '&mdash;' : s.lam}</td><td>${fmt(s.r)}</td></tr>`;
+  }
+  document.getElementById('vizLog').innerHTML = rows;
+}
+function vizReset() {
+  vizPause();
+  const k = Math.max(2, Math.min(200, parseInt(document.getElementById('vizK').value) || 6));
+  VS.steps = buildSteps(k, document.getElementById('vizMode').value); VS.i = 0; drawViz();
+}
+function vizStep() { if (VS.i < VS.steps.length - 1) { VS.i++; drawViz(); } else vizPause(); }
+function vizPlay() {
+  if (VS.i >= VS.steps.length - 1) vizReset();
+  vizPause();
+  VS.timer = setInterval(vizStep, +document.getElementById('vizSpeed').value);
+}
+function vizPause() { if (VS.timer) { clearInterval(VS.timer); VS.timer = null; } }
+document.addEventListener('DOMContentLoaded', () => {
+  const sp = document.getElementById('vizSpeed');
+  sp.oninput = () => {
+    document.getElementById('vizSpeedVal').innerText = sp.value;
+    if (VS.timer) vizPlay();
+  };
+  document.getElementById('vizMode').onchange = vizReset;
+  document.getElementById('vizK').onchange = vizReset;
+});
 
-    function keccak256(bytes) {
-      const rate = 136;
-      const padLen = rate - (bytes.length % rate);
-      const padded = new Uint8Array(bytes.length + padLen);
-      padded.set(bytes);
-      if (padLen === 1) {
-        padded[bytes.length] = 0x81;
-      } else {
-        padded[bytes.length] = 0x01;
-        padded[padded.length - 1] = 0x80;
-      }
+/* ================= Tab 3: statistics ================= */
+const charts = {};
+function mkChart(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); }
+function findBase(p) {
+  const sq = new Map();
+  for (let y = 1; y < p; y++) { const s = (y * y) % p; if (!sq.has(s)) sq.set(s, y); }
+  for (let x = 1; x < p; x++) { const r = mod(x ** 3 + 7, p); if (sq.has(r)) return { x, y: sq.get(r) }; }
+}
+function setBase() {
+  const b = findBase(+document.getElementById('stP').value);
+  document.getElementById('stGx').value = b.x; document.getElementById('stGy').value = b.y;
+}
+const ham = (a, b) => { let v = a ^ b, c = 0; while (v) { c += v & 1; v >>>= 1; } return c; };
+function pearson(u, v) {
+  const n = u.length; let mu = 0, mv = 0;
+  for (let i = 0; i < n; i++) { mu += u[i]; mv += v[i]; } mu /= n; mv /= n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const a = u[i] - mu, b = v[i] - mv; sxy += a * b; sxx += a * a; syy += b * b; }
+  return sxy / Math.sqrt(sxx * syy);
+}
+let statsDone = false;
+function runStats() {
+  statsDone = true;
+  const p = +document.getElementById('stP').value;
+  const G = { x: +document.getElementById('stGx').value, y: +document.getElementById('stGy').value };
+  const box = document.getElementById('stSummary');
+  if (mod(G.y * G.y - (G.x ** 3 + 7), p) !== 0 || G.y === 0) {
+    box.innerHTML = '<p class="bad">G is not a valid base point on y&sup2; = x&sup3; + 7 (mod p) with y &ne; 0.</p>'; return;
+  }
+  const X = [0, G.x], Y = [0, G.y];
+  let cur = G, n = 1;
+  while (n < 300000) { const r = eadd(cur, G, p).R; n++; if (!r) break; X[n] = r.x; Y[n] = r.y; cur = r; }
+  const m = n - 1;
+  if (m < 4) { box.innerHTML = '<p class="bad">The order of G is too small for statistics.</p>'; return; }
+  const bl = Math.ceil(Math.log2(p));
 
-      const state = new Array(25).fill(0n);
-      for (let b = 0; b < padded.length; b += rate) {
-        for (let i = 0; i < 17; i++) {
-          let word = 0n;
-          for (let byteIdx = 0; byteIdx < 8; byteIdx++) {
-            word |= BigInt(padded[b + i * 8 + byteIdx]) << BigInt(byteIdx * 8);
-          }
-          state[i] ^= word;
-        }
-        keccakF1600(state);
-      }
+  // histogram of x
+  const hist = new Array(16).fill(0);
+  for (let k = 1; k <= m; k++) hist[Math.min(15, Math.floor(X[k] * 16 / p))]++;
+  const e = m / 16; let chi = 0; hist.forEach(o => chi += (o - e) ** 2 / e);
+  // bits of x
+  const bitF = new Array(bl).fill(0);
+  for (let k = 1; k <= m; k++) for (let b = 0; b < bl; b++) if ((X[k] >> b) & 1) bitF[b]++;
+  const bitP = bitF.map(c => +(100 * c / m).toFixed(1));
+  // distinct values, parity of y
+  const distinct = new Set(X.slice(1, m + 1)).size;
+  let odd = 0; for (let k = 1; k <= m; k++) odd += Y[k] & 1;
+  // correlations
+  const ks = [], xs = [];
+  for (let k = 1; k <= m; k++) { ks.push(k); xs.push(X[k]); }
+  const rKX = pearson(ks, xs), rLag = pearson(xs.slice(0, -1), xs.slice(1));
+  // avalanche
+  const kb = Math.ceil(Math.log2(n)), stride = Math.max(1, Math.floor(m / 2000)), aval = [];
+  for (let b = 0; b < kb; b++) {
+    let s = 0, c = 0;
+    for (let k = 1; k <= m; k += stride) { const k2 = k ^ (1 << b); if (k2 >= 1 && k2 <= m) { s += ham(X[k], X[k2]) / bl; c++; } }
+    aval.push(c ? +(100 * s / c).toFixed(1) : 0);
+  }
+  const avgA = aval.reduce((a, b) => a + b, 0) / aval.length;
 
-      const out = new Uint8Array(32);
-      for (let i = 0; i < 4; i++) {
-        let w = state[i];
-        for (let byteIdx = 0; byteIdx < 8; byteIdx++) {
-          out[i * 8 + byteIdx] = Number(w & 0xFFn);
-          w >>= 8n;
-        }
-      }
-      return out;
+  box.innerHTML = `<table><tbody>
+    <tr><td>Order n of G</td><td><strong>${n}</strong> (${m} nontrivial multiples, x has ${bl} bits)</td></tr>
+    <tr><td>&chi;&sup2; uniformity of x (15 d.o.f.)</td><td>${chi.toFixed(1)} &mdash; critical value at 5%: 25.0
+      ${m < 80 ? '<span class="bad">(sample too small to be meaningful)</span>' : (chi < 25 ? '<span class="ok">(consistent with uniform)</span>' : '<span class="bad">(deviates from uniform)</span>')}</td></tr>
+    <tr><td>Distinct x values</td><td>${distinct} out of ${m} points: x(kG) = x((n&minus;k)G), so each x appears twice (P and &minus;P)</td></tr>
+    <tr><td>Parity of y</td><td>${(100 * odd / m).toFixed(1)}% odd</td></tr>
+    <tr><td>Pearson r between k and x</td><td>${rKX.toFixed(3)}</td></tr>
+    <tr><td>Pearson r between x(kG) and x((k+1)G)</td><td>${rLag.toFixed(3)}</td></tr>
+    <tr><td>Mean avalanche (1 bit of k flipped)</td><td>${avgA.toFixed(1)}% of x bits change (ideal hash: 50%; the value is slightly lower because x &lt; p, so the top bit is biased)</td></tr>
+  </tbody></table>`;
+
+  mkChart('chHist', { type: 'bar', data: { labels: hist.map((_, i) => 'bin ' + i),
+    datasets: [{ label: 'count', data: hist, backgroundColor: '#800020', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+  mkChart('chBits', { type: 'bar', data: { labels: bitP.map((_, i) => 'bit ' + i),
+    datasets: [{ label: '% ones', data: bitP, backgroundColor: '#9e2a4b', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { min: 0, max: 100 } } } });
+  const sc = [], sst = Math.max(1, Math.floor(m / 2000));
+  for (let k = 1; k <= m; k += sst) sc.push({ x: k, y: X[k] });
+  mkChart('chScatter', { type: 'scatter', data: { datasets: [{ label: 'x(kG)', data: sc, pointRadius: 1.5, backgroundColor: '#800020' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { title: { display: true, text: 'k' } }, y: { title: { display: true, text: 'x' } } } } });
+  mkChart('chAval', { type: 'bar', data: { labels: aval.map((_, i) => 'bit ' + i),
+    datasets: [{ label: '% bits changed', data: aval, backgroundColor: '#9e2a4b', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { min: 0, max: 100 } } } });
+}
+
+/* ================= Tab 5: real secp256k1 + Keccak-256 ================= */
+const SP = 2n ** 256n - 2n ** 32n - 977n;
+const SN = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+const SG = { x: 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n,
+             y: 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n };
+const smod = a => ((a % SP) + SP) % SP;
+function sinv(a) {
+  let [r0, r1] = [smod(a), SP], [s0, s1] = [1n, 0n];
+  while (r1) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
+  return smod(s0);
+}
+function sadd(A, B) {
+  if (!A) return B; if (!B) return A;
+  let l;
+  if (A.x === B.x) { if (smod(A.y + B.y) === 0n) return null; l = smod(3n * A.x * A.x * sinv(2n * A.y)); }
+  else l = smod((B.y - A.y) * sinv(B.x - A.x));
+  const x = smod(l * l - A.x - B.x);
+  return { x, y: smod(l * (A.x - x) - A.y) };
+}
+function smul(k, pt) {
+  let R = null, Q = pt, d = 0, a = 0;
+  while (k > 0n) { if (k & 1n) { R = sadd(R, Q); a++; } Q = sadd(Q, Q); d++; k >>= 1n; }
+  return { R, d, a };
+}
+const RC = [0x0000000000000001n,0x0000000000008082n,0x800000000000808an,0x8000000080008000n,
+  0x000000000000808bn,0x0000000080000001n,0x8000000080008081n,0x8000000000008009n,
+  0x000000000000008an,0x0000000000000088n,0x0000000080008009n,0x000000008000000an,
+  0x000000008000808bn,0x800000000000008bn,0x8000000000008089n,0x8000000000008003n,
+  0x8000000000008002n,0x8000000000000080n,0x000000000000800an,0x800000008000000an,
+  0x8000000080008081n,0x8000000000008080n,0x0000000080000001n,0x8000000080008008n];
+const ROTC = [[0n,36n,3n,41n,18n],[1n,44n,10n,45n,2n],[62n,6n,43n,15n,61n],[28n,55n,25n,21n,56n],[27n,20n,39n,8n,14n]];
+const M64 = 0xFFFFFFFFFFFFFFFFn;
+const rotl64 = (x, r) => r === 0n ? x : ((x << r) | (x >> (64n - r))) & M64;
+function keccakF(s) {
+  for (let r = 0; r < 24; r++) {
+    const C = [], D = [], B = new Array(25);
+    for (let x = 0; x < 5; x++) C[x] = s[x] ^ s[x+5] ^ s[x+10] ^ s[x+15] ^ s[x+20];
+    for (let x = 0; x < 5; x++) D[x] = C[(x+4)%5] ^ rotl64(C[(x+1)%5], 1n);
+    for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) s[x+5*y] ^= D[x];
+    for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) B[y + 5*((2*x+3*y)%5)] = rotl64(s[x+5*y], ROTC[x][y]);
+    for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++)
+      s[x+5*y] = (B[x+5*y] ^ ((~B[(x+1)%5+5*y]) & B[(x+2)%5+5*y])) & M64;
+    s[0] ^= RC[r];
+  }
+}
+function keccak256(bytes) {
+  const rate = 136, padLen = rate - (bytes.length % rate);
+  const pd = new Uint8Array(bytes.length + padLen); pd.set(bytes);
+  if (padLen === 1) pd[bytes.length] = 0x81; else { pd[bytes.length] = 0x01; pd[pd.length - 1] = 0x80; }
+  const st = new Array(25).fill(0n);
+  for (let b = 0; b < pd.length; b += rate) {
+    for (let i = 0; i < 17; i++) {
+      let w = 0n;
+      for (let j = 0; j < 8; j++) w |= BigInt(pd[b + i*8 + j]) << BigInt(8*j);
+      st[i] ^= w;
     }
+    keccakF(st);
+  }
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 4; i++) { let w = st[i]; for (let j = 0; j < 8; j++) { out[i*8+j] = Number(w & 0xFFn); w >>= 8n; } }
+  return out;
+}
+const toHex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+const hexBytes = h => Uint8Array.from(h.match(/../g).map(x => parseInt(x, 16)));
+const h64 = v => v.toString(16).padStart(64, '0');
 
-    function bytesToHex(bytes) {
-      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+function deriveEth() {
+  const out = document.getElementById('ethOut');
+  const raw = document.getElementById('ethK').value.trim().replace(/^0x/i, '');
+  if (!/^[0-9a-fA-F]{1,64}$/.test(raw)) { out.innerHTML = '<p class="bad">Enter a hexadecimal number (up to 64 digits).</p>'; return; }
+  const k = BigInt('0x' + raw);
+  if (k < 1n || k >= SN) { out.innerHTML = '<p class="bad">The key must satisfy 1 &le; k &lt; n.</p>'; return; }
+  const t0 = performance.now();
+  const { R: Q, d, a } = smul(k, SG);
+  const ms = (performance.now() - t0).toFixed(1);
+  const xh = h64(Q.x), yh = h64(Q.y);
+  const addr = '0x' + toHex(keccak256(hexBytes(xh + yh))).slice(-40);
+  out.innerHTML = `
+    <p><strong>Q.x:</strong> <code>${xh}</code></p>
+    <p><strong>Q.y:</strong> <code>${yh}</code></p>
+    <p><strong>Uncompressed public key:</strong> <code>04${xh}${yh}</code></p>
+    <p><strong>Compressed public key:</strong> <code>${Q.y % 2n === 0n ? '02' : '03'}${xh}</code></p>
+    <p><strong>Ethereum address</strong> (last 20 bytes of Keccak-256(x&#8214;y)): <span class="badge">${addr}</span></p>
+    <p style="color:var(--text-muted)">Computed with ${d} doublings and ${a} additions in ${ms} ms.</p>`;
+}
+function randomEth() {
+  let k;
+  do { k = BigInt('0x' + toHex(crypto.getRandomValues(new Uint8Array(32)))); } while (k < 1n || k >= SN);
+  document.getElementById('ethK').value = h64(k);
+  deriveEth();
+}
 
-    async function computeSHA256(message) {
-      const msgUint8 = new TextEncoder().encode(message);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-      return bytesToHex(new Uint8Array(hashBuffer));
-    }
-
-    let nibbleChartInstance = null;
-    let avalancheChartInstance = null;
-
-    async function calculateHashes() {
-      const input = document.getElementById('inputMessage').value;
-      const sha256Hex = await computeSHA256(input);
-      const keccakHex = bytesToHex(keccak256(new TextEncoder().encode(input)));
-
-      document.getElementById('hashOutput').innerText = sha256Hex;
-      document.getElementById('sha256Digest').innerText = sha256Hex;
-      document.getElementById('keccakDigest').innerText = keccakHex;
-
-      updateStatisticalPlots(sha256Hex, input);
-    }
-
-    function generateRandomInput() {
-      const samples = [
-        "Cryptographic Hash Functions",
-        "Merkle-Damgard vs Sponge",
-        "Strict Avalanche Criterion 2026",
-        "Blockchain Security Foundations"
-      ];
-      const idx = Math.floor(Math.random() * samples.length);
-      document.getElementById('inputMessage').value = samples[idx];
-      calculateHashes();
-    }
-
-    async function updateStatisticalPlots(sha256Hex, originalInput) {
-      // 1. Nibble Frequency Chart (Coordinato in Bordeaux)
-      const counts = new Array(16).fill(0);
-      for (let ch of sha256Hex) {
-        counts[parseInt(ch, 16)]++;
-      }
-
-      if (nibbleChartInstance) nibbleChartInstance.destroy();
-      const ctxNibble = document.getElementById('nibbleChart').getContext('2d');
-      nibbleChartInstance = new Chart(ctxNibble, {
-        type: 'bar',
-        data: {
-          labels: ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'],
-          datasets: [{
-            label: 'Nibble Occurrences',
-            data: counts,
-            backgroundColor: '#800020',
-            borderRadius: 4
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, grid: { color: '#f0e1e5' } },
-            x: { grid: { color: '#f0e1e5' } }
-          }
-        }
-      });
-
-      // 2. Avalanche Effect Bit Shift Test
-      const perturbedInput = originalInput.length > 0 
-        ? originalInput.slice(0, -1) + String.fromCharCode(originalInput.charCodeAt(originalInput.length - 1) ^ 1)
-        : "a";
-
-      const perturbedSha256 = await computeSHA256(perturbedInput);
-      const perturbedKeccak = bytesToHex(keccak256(new TextEncoder().encode(perturbedInput)));
-
-      function calcHammingPercent(h1, h2) {
-        let diffBits = 0;
-        const len = Math.min(h1.length, h2.length);
-        for (let i = 0; i < len; i++) {
-          let b1 = parseInt(h1[i], 16);
-          let b2 = parseInt(h2[i], 16);
-          let xor = b1 ^ b2;
-          while (xor > 0) {
-            diffBits += (xor & 1);
-            xor >>= 1;
-          }
-        }
-        return ((diffBits / (len * 4)) * 100).toFixed(1);
-      }
-
-      const shaHamming = calcHammingPercent(sha256Hex, perturbedSha256);
-      const keccakOriginal = bytesToHex(keccak256(new TextEncoder().encode(originalInput)));
-      const keccakHamming = calcHammingPercent(keccakOriginal, perturbedKeccak);
-
-      if (avalancheChartInstance) avalancheChartInstance.destroy();
-      const ctxAvalanche = document.getElementById('avalancheChart').getContext('2d');
-      avalancheChartInstance = new Chart(ctxAvalanche, {
-        type: 'bar',
-        data: {
-          labels: ['SHA-256', 'Keccak-256'],
-          datasets: [{
-            label: 'Flipped Bits Percentage (%)',
-            data: [shaHamming, keccakHamming],
-            backgroundColor: ['#800020', '#9e2a4b'],
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, max: 100, grid: { color: '#f0e1e5' } },
-            x: { grid: { color: '#f0e1e5' } }
-          }
-        }
-      });
-
-      // Populate Table
-      const tbody = document.getElementById('avalancheTableBody');
-      tbody.innerHTML = `
-        <tr>
-          <td><strong>SHA-256</strong></td>
-          <td><code>${sha256Hex.slice(0, 16)}...</code></td>
-          <td><code>${perturbedSha256.slice(0, 16)}...</code></td>
-          <td><span class="badge badge-accent">${shaHamming}% Bit Flip</span></td>
-        </tr>
-        <tr>
-          <td><strong>Keccak-256</strong></td>
-          <td><code>${keccakOriginal.slice(0, 16)}...</code></td>
-          <td><code>${perturbedKeccak.slice(0, 16)}...</code></td>
-          <td><span class="badge badge-accent">${keccakHamming}% Bit Flip</span></td>
-        </tr>
-      `;
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      event.target.classList.add('active');
-    }
-
-    window.onload = () => {
-      calculateHashes();
-    };
-  </script>
+/* ================= Navigation & init ================= */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 't3' && !statsDone) runStats();
+  if (id === 't2') drawViz();
+}
+window.onload = () => { runToy(); vizReset(); setBase(); deriveEth(); };
+</script>
 </body>
 </html>
