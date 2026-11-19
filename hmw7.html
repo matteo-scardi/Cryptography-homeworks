@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMWK 7: Statistical Independence, Contingency Tables &amp; Chi-Square Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#ffffff; --card-bg:#f8fafc; --card-alt:#f1f5f9; --border:#cbd5e1;
+      --primary:#334155; --primary-hover:#1e293b; --accent:#475569; --accent-light:#e2e8f0;
+      --text:#0f172a; --text-muted:#64748b; --ok:#15803d; --bad:#dc2626; --mid:#b45309;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg); color:var(--text); line-height:1.6; padding:24px; }
+    .container { max-width:1240px; margin:0 auto; }
+    header { text-align:center; margin-bottom:24px; }
+    header h1 { font-size:2.1rem; color:var(--primary); margin-bottom:8px; }
+    header p { color:var(--text-muted); font-size:1.05rem; }
+    .overview-banner { background:linear-gradient(135deg,var(--card-bg),var(--accent-light));
+      border:1px solid var(--border); border-left:5px solid var(--primary); border-radius:10px;
+      padding:22px 26px; margin-bottom:24px; }
+    .overview-banner h2 { font-size:1.25rem; color:var(--primary); margin-bottom:10px; }
+    .overview-banner p { font-size:.95rem; margin-bottom:10px; }
+    .overview-banner p:last-child { margin-bottom:0; }
+    .formula { font-family:ui-monospace,Menlo,Consolas,monospace; background:#fff; padding:10px 12px;
+      border-radius:6px; color:var(--primary); border:1px solid var(--border); font-size:.88rem;
+      margin:8px 0; overflow-x:auto; }
+    .nav-tabs { display:flex; gap:10px; margin-bottom:24px; border-bottom:2px solid var(--border);
+      flex-wrap:nowrap; overflow-x:auto; }
+    .nav-tab { padding:10px 16px; background:transparent; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:.92rem; font-weight:600; border-bottom:3px solid transparent;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-tab:hover { color:var(--primary); }
+    .nav-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .tab-content { display:none; } .tab-content.active { display:block; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:end; }
+    @media (max-width:950px) { .grid-2,.grid-3 { grid-template-columns:1fr; } }
+    .card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+      padding:22px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    .card h2 { font-size:1.25rem; color:var(--primary); margin-bottom:12px; }
+    .card h3 { font-size:1.05rem; margin:10px 0 6px; }
+    .card p, .card li { font-size:.92rem; margin-bottom:8px; }
+    .card ul, .card ol { margin-left:20px; }
+    .flow-step { background:var(--card-alt); border-left:4px solid var(--primary);
+      padding:14px; margin-bottom:14px; border-radius:6px; }
+    .flow-step h4 { color:var(--primary); margin-bottom:6px; font-size:1rem; }
+    label { display:block; font-weight:500; font-size:.9rem; margin-bottom:6px; }
+    input[type=text], select, textarea { width:100%; padding:10px; border-radius:6px;
+      border:1px solid var(--border); background:#fff; color:var(--text); font-size:.95rem; margin-bottom:12px; }
+    textarea { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.85rem; min-height:110px; }
+    .btn { padding:10px 16px; border-radius:6px; font-weight:600; cursor:pointer; border:none;
+      background:var(--primary); color:#fff; margin:0 6px 12px 0; }
+    .btn:hover { background:var(--primary-hover); }
+    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:.84rem; }
+    th, td { padding:7px 9px; border:1px solid var(--border); text-align:left; }
+    th { background:var(--accent-light); color:var(--primary); }
+    tr:nth-child(even) td { background-color:rgba(241,245,249,.65); }
+    .scroll { overflow-x:auto; }
+    code { font-family:ui-monospace,Menlo,Consolas,monospace; background:var(--accent-light);
+      padding:2px 6px; border-radius:4px; font-size:.84rem; color:var(--primary); border:1px solid #cbd5e1; }
+    pre { font-family:ui-monospace,Menlo,Consolas,monospace; background:#0f172a; color:#f1f5f9;
+      padding:14px; border-radius:8px; font-size:.82rem; overflow-x:auto; line-height:1.5; }
+    .chart-container { position:relative; height:320px; width:100%; margin-top:10px; }
+    .muted { color:var(--text-muted); font-size:.85rem; }
+    .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .mid { color:var(--mid); font-weight:600; }
+    .verdict { padding:14px 16px; border-radius:8px; font-size:.95rem; margin-top:12px; border:1px solid; }
+    .verdict.dep { background:#fef2f2; border-color:#fecaca; }
+    .verdict.ind { background:#f0fdf4; border-color:#bbf7d0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Statistical Independence</h1>
+    <p>Contingency tables, expected frequencies under independence and the chi-square test</p>
+  </header>
+
+  <div class="overview-banner">
+    <h2>&#128218; Project Description</h2>
+    <p>Given a bivariate dataset <code>(X, F)</code>, this page builds the <strong>contingency table</strong> from the raw pairs, computes joint, marginal and conditional frequencies,
+    derives the <strong>expected frequencies under independence</strong>, and runs the <strong>chi-square test</strong> with its p-value. A permutation test checks the result without the chi-square approximation, and a closing tab
+    separates statistical association from causality.</p>
+    <p class="formula">P(X=i, F=j) = P(X=i)&middot;P(F=j) &nbsp;|&nbsp; E<sub>ij</sub> = R<sub>i</sub>C<sub>j</sub>/N &nbsp;|&nbsp; &chi;&sup2; = &Sigma;(O<sub>ij</sub> &minus; E<sub>ij</sub>)&sup2;/E<sub>ij</sub>, df = (r&minus;1)(c&minus;1)</p>
+    <p>Everything runs locally in your browser.</p>
+  </div>
+
+  <div class="card">
+    <div class="grid-3">
+      <div><label for="dsSel">Dataset</label>
+        <select id="dsSel" onchange="onDs()">
+          <option value="hair">Hair colour &times; eye colour (Snee 1974, n = 592)</option>
+          <option value="titanic">Passenger class &times; survival (Titanic, n = 2201)</option>
+          <option value="synth">Synthetic, independent by construction (n = 400)</option>
+          <option value="custom">Custom data (paste pairs)</option></select></div>
+      <div><label for="alphaSel">Significance level &alpha;</label>
+        <select id="alphaSel" onchange="renderAll()"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></div>
+      <div><span id="dsNote" class="muted"></span></div>
+    </div>
+    <div id="customBox" style="display:none">
+      <label for="customIn">Raw pairs, one per line: <code>x,f</code> (an optional header line is ignored if it starts with a letter and the next lines have the same format)</label>
+      <textarea id="customIn">Male,Yes
+Male,No
+Female,Yes
+Female,Yes
+Male,No
+Female,No
+Male,Yes
+Female,Yes
+Male,No
+Male,No
+Female,Yes
+Female,No</textarea>
+      <button class="btn" onclick="renderAll()">Analyse</button>
+      <p class="muted">The default text is only a tiny example: the expected counts will be below 5 and the page will warn you.</p>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('t1',this)">1. Theory &amp; Method</button>
+    <button class="nav-tab" onclick="switchTab('t2',this)">2. Contingency Table &amp; Frequencies</button>
+    <button class="nav-tab" onclick="switchTab('t3',this)">3. Expected Frequencies &amp; &chi;&sup2; Test</button>
+    <button class="nav-tab" onclick="switchTab('t4',this)">4. Visual &amp; Permutation Test</button>
+    <button class="nav-tab" onclick="switchTab('t5',this)">5. Conclusions</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="t1" class="tab-content active">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Independence in probability</h2>
+        <div class="flow-step">
+          <p>Events A and B are independent iff <code>P(A&cap;B) = P(A)P(B)</code>, equivalently <code>P(A|B) = P(A)</code> when P(B) &gt; 0: knowing B does not change the probability of A.</p>
+          <p>For two categorical variables X (r categories) and F (c categories), independence means, for <em>every</em> cell:</p>
+          <div class="formula">P(X=i, F=j) = P(X=i)&middot;P(F=j) &nbsp;&hArr;&nbsp; P(F=j | X=i) = P(F=j) for all i</div>
+          <p>So all the rows of the conditional table (F given X) must be equal to the marginal distribution of F.</p>
+        </div>
+        <h2>Hypotheses</h2>
+        <ul>
+          <li><strong>H<sub>0</sub>:</strong> X and F are independent.</li>
+          <li><strong>H<sub>1</sub>:</strong> X and F are dependent (associated).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Procedure</h2>
+        <ol>
+          <li>Count the pairs: observed table <code>O<sub>ij</sub></code>, totals <code>R<sub>i</sub></code>, <code>C<sub>j</sub></code>, <code>N</code>.</li>
+          <li>Joint, marginal and conditional relative frequencies.</li>
+          <li>Expected counts under H<sub>0</sub>: <code>E<sub>ij</sub> = R<sub>i</sub>&middot;C<sub>j</sub>/N</code>.</li>
+          <li>Statistic <code>&chi;&sup2; = &Sigma;(O&minus;E)&sup2;/E</code>, with df = (r&minus;1)(c&minus;1).</li>
+          <li>p-value <code>P(&chi;&sup2;<sub>df</sub> &ge; &chi;&sup2;<sub>obs</sub>) = Q(df/2, &chi;&sup2;/2)</code> (regularized upper incomplete gamma).</li>
+          <li>Reject H<sub>0</sub> if p &lt; &alpha;. Effect size: Cram&eacute;r&rsquo;s V = &radic;(&chi;&sup2; / (N&middot;min(r&minus;1, c&minus;1))).</li>
+        </ol>
+        <p class="muted">Validity: the &chi;&sup2; approximation is reliable when almost all expected counts are at least 5 (rule of thumb: no expected count below 1 and at most 20% below 5).</p>
+        <h3>Python</h3>
+<pre>import numpy as np
+from scipy.stats import chi2
+O = np.array(table)                  # observed counts
+E = O.sum(1, keepdims=True) * O.sum(0, keepdims=True) / O.sum()
+stat = ((O - E) ** 2 / E).sum()
+df = (O.shape[0] - 1) * (O.shape[1] - 1)
+p = chi2.sf(stat, df)</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="t2" class="tab-content">
+    <div class="card"><h2 id="t2title">Observed contingency table</h2>
+      <div class="scroll" id="obsTable"></div><p class="muted" id="rawNote"></p></div>
+    <div class="grid-2">
+      <div class="card"><h3>Joint relative frequencies f<sub>ij</sub> = O<sub>ij</sub>/N (marginals in the last row and column)</h3><div class="scroll" id="jointTable"></div></div>
+      <div class="card"><h3>Conditional frequencies of F given X (rows sum to 100%)</h3><div class="scroll" id="condFX"></div>
+        <p class="muted">The last row is the marginal distribution of F: under independence every row equals it.</p></div>
+    </div>
+    <div class="card"><h3>Conditional frequencies of X given F (columns sum to 100%)</h3><div class="scroll" id="condXF"></div>
+      <p class="muted">The last column is the marginal distribution of X.</p></div>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="t3" class="tab-content">
+    <div class="grid-2">
+      <div class="card"><h3>Expected frequencies E<sub>ij</sub> = R<sub>i</sub>C<sub>j</sub>/N</h3><div class="scroll" id="expTable"></div>
+        <p class="muted" id="expNote"></p></div>
+      <div class="card"><h3>Contributions (O&minus;E)&sup2;/E</h3><div class="scroll" id="contribTable"></div>
+        <p class="muted">Their sum is the &chi;&sup2; statistic. Darker cells contribute more.</p></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>Standardized residuals (O&minus;E)/&radic;E</h3><div class="scroll" id="resTable"></div>
+        <p class="muted">Amber: more observations than expected under independence. Blue: fewer. Values beyond &plusmn;2 (roughly) flag the cells responsible for the dependence.</p></div>
+      <div class="card"><h2>Test result</h2><div id="testOut"></div></div>
+    </div>
+  </div>
+
+  <!-- TAB 4 -->
+  <div id="t4" class="tab-content">
+    <div class="grid-2">
+      <div class="card"><h2>Conditional distributions vs marginal</h2>
+        <div class="chart-container"><canvas id="chCond"></canvas></div>
+        <p class="muted">Each bar is the distribution of F within one category of X (100% stacked). The last bar is the marginal distribution of F. If X and F were independent, all bars would look alike.</p></div>
+      <div class="card"><h2>Permutation test</h2>
+        <p>Shuffling the F labels breaks any link with X while keeping both marginals fixed. Repeating it 2000 times gives the distribution of &chi;&sup2; under independence, to compare with the observed value and with the theoretical &chi;&sup2;<sub>df</sub> density.</p>
+        <div class="chart-container"><canvas id="chPerm"></canvas></div>
+        <div id="permOut"></div></div>
+    </div>
+  </div>
+
+  <!-- TAB 5 -->
+  <div id="t5" class="tab-content">
+    <div class="grid-2">
+      <div class="card"><h2>Reading the result</h2>
+        <ul>
+          <li><strong>p &lt; &alpha;:</strong> the observed table would be very unlikely if X and F were independent, so we reject H<sub>0</sub>. The variables are <em>statistically dependent</em>.</li>
+          <li><strong>p &ge; &alpha;:</strong> no evidence of dependence. This does <em>not</em> prove independence: the test may simply lack power (small N).</li>
+          <li><strong>Significance is not strength.</strong> &chi;&sup2; grows with N, so a huge sample can make a negligible association significant. Cram&eacute;r&rsquo;s V does not grow with N and measures the effect size.</li>
+          <li><strong>The test is global.</strong> It says that some cells differ from independence; the standardized residuals say which.</li>
+          <li><strong>No direction.</strong> &chi;&sup2; is symmetric: it cannot say whether X influences F, F influences X, or neither.</li>
+        </ul></div>
+      <div class="card"><h2>Association is not causation</h2>
+        <ul>
+          <li><strong>Confounding:</strong> a third variable Z can drive both X and F. Example: ice-cream sales and drownings are associated, both depend on temperature.</li>
+          <li><strong>Reverse causality:</strong> F may cause X rather than the other way round.</li>
+          <li><strong>Simpson&rsquo;s paradox:</strong> an association in the pooled table can vanish or reverse inside every subgroup of Z.</li>
+          <li><strong>Selection and design:</strong> only randomised experiments, or careful causal modelling, support causal claims.</li>
+          <li><strong>Titanic example:</strong> class and survival are strongly associated, but class is entangled with sex, age and cabin location, so the table alone does not show that class <em>caused</em> survival.</li>
+        </ul></div>
+    </div>
+    <div class="card"><h2>Sample size changes &chi;&sup2; but not V</h2>
+      <p>Multiplying every observed count by k (same proportions) multiplies &chi;&sup2; by k, shrinks the p-value, and leaves Cram&eacute;r&rsquo;s V unchanged.</p>
+      <div class="scroll" id="scaleTable"></div></div>
+  </div>
+</div>
+
+<script>
+/* ================= Math helpers ================= */
+const G7 = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+function lgamma(z) {
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  z -= 1; let x = G7[0]; for (let i = 1; i < 9; i++) x += G7[i] / (z + i);
+  const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+function gammaQ(a, x) {                       // regularized upper incomplete gamma Q(a, x)
+  if (x <= 0) return 1;
+  const pre = Math.exp(-x + a * Math.log(x) - lgamma(a));
+  if (x < a + 1) {
+    let sum = 1 / a, del = sum, ap = a;
+    for (let n = 0; n < 1000; n++) { ap++; del *= x / ap; sum += del; if (Math.abs(del) < Math.abs(sum) * 1e-15) break; }
+    return Math.max(0, 1 - sum * pre);
+  }
+  const tiny = 1e-300; let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+  for (let i = 1; i < 1000; i++) {
+    const an = -i * (i - a); b += 2; d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c; if (Math.abs(c) < tiny) c = tiny; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-15) break;
+  }
+  return pre * h;
+}
+const pvalue = (chi, df) => df > 0 ? gammaQ(df / 2, chi / 2) : NaN;
+function critical(df, alpha) { let lo = 0, hi = 2000; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (pvalue(m, df) > alpha) lo = m; else hi = m; } return (lo + hi) / 2; }
+const chiPdf = (x, k) => x <= 0 ? 0 : Math.exp((k / 2 - 1) * Math.log(x) - x / 2 - (k / 2) * Math.log(2) - lgamma(k / 2));
+
+/* ================= Formatting ================= */
+const val = id => document.getElementById(id).value;
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const pct = v => (100 * v).toFixed(1) + '%';
+const sci = x => x === 0 ? '0' : (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e6) ? x.toExponential(3) : x.toFixed(4);
+const fp = p => isNaN(p) ? 'n/a' : p < 1e-300 ? '&lt; 1e-300' : p < 1e-4 ? p.toExponential(3) : p.toFixed(5);
+const charts = {};
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); }
+const baseOpt = { responsive: true, maintainAspectRatio: false, animation: false };
+const PAL = ['#334155', '#2563eb', '#d97706', '#16a34a', '#dc2626', '#0891b2', '#64748b', '#65a30d'];
+
+/* ================= Datasets (raw pairs) ================= */
+function expand(rl, cl, M) { const out = []; rl.forEach((r, i) => cl.forEach((c, j) => { for (let k = 0; k < M[i][j]; k++) out.push([r, c]); })); return out; }
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function pick(rnd, labels, probs) { const u = rnd(); let c = 0; for (let i = 0; i < probs.length; i++) { c += probs[i]; if (u < c) return labels[i]; } return labels[labels.length - 1]; }
+const DS = {
+  hair: { xl: 'Hair', fl: 'Eye', note: 'Classic table (Snee 1974): 592 students. Entered by hand, verify against a reference before citing.',
+    pairs: () => expand(['Black', 'Brown', 'Red', 'Blond'], ['Brown', 'Blue', 'Hazel', 'Green'],
+      [[68, 20, 15, 5], [119, 84, 54, 29], [26, 17, 14, 14], [7, 94, 10, 16]]) },
+  titanic: { xl: 'Class', fl: 'Outcome', note: 'Titanic passengers and crew (n = 2201), the usual 4 x 2 summary. Entered by hand, verify before citing.',
+    pairs: () => expand(['Crew', 'First', 'Second', 'Third'], ['Survived', 'Died'], [[212, 673], [202, 123], [118, 167], [178, 528]]) },
+  synth: { xl: 'Region', fl: 'Product', note: 'Generated with a fixed seed: Region and Product are drawn independently, so H0 is true. A true H0 is still rejected in about 5% of samples at alpha = 0.05.',
+    pairs: () => { const r = mulberry(7), o = []; for (let i = 0; i < 400; i++) o.push([pick(r, ['North', 'Centre', 'South'], [.5, .3, .2]), pick(r, ['P1', 'P2', 'P3'], [.45, .35, .2])]); return o; } }
+};
+function parseCustom(txt) {
+  const rows = txt.split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(s => s.split(/[,;\t]/).map(t => t.trim()));
+  const ok = rows.filter(r => r.length >= 2 && r[0] !== '' && r[1] !== '');
+  let xl = 'X', fl = 'F';
+  if (ok.length > 2 && ok[0][0] !== undefined && /^[A-Za-z_]/.test(ok[0][0]) && ok.slice(1).some(r => /^[A-Za-z_]/.test(r[0])) === true && /^(x|var|group|category)/i.test(ok[0][0]) && /^(f|y|var|outcome)/i.test(ok[0][1])) { xl = ok[0][0]; fl = ok[0][1]; ok.shift(); }
+  return { xl, fl, pairs: ok.map(r => [r[0], r[1]]) };
+}
+
+/* ================= Analysis ================= */
+function analyze(xl, fl, pairs) {
+  const rows = [], cols = [], ri = new Map(), ci = new Map();
+  const xi = new Int32Array(pairs.length), fi = new Int32Array(pairs.length);
+  pairs.forEach(([x, f], k) => {
+    if (!ri.has(x)) { ri.set(x, rows.length); rows.push(x); }
+    if (!ci.has(f)) { ci.set(f, cols.length); cols.push(f); }
+    xi[k] = ri.get(x); fi[k] = ci.get(f);
+  });
+  const r = rows.length, c = cols.length, N = pairs.length;
+  if (N === 0 || r < 2 || c < 2) return { error: 'Need at least 2 categories for each variable and some data.' };
+  const O = rows.map(() => new Array(c).fill(0));
+  for (let k = 0; k < N; k++) O[xi[k]][fi[k]]++;
+  const R = O.map(row => row.reduce((a, b) => a + b, 0)), C = cols.map((_, j) => O.reduce((a, row) => a + row[j], 0));
+  const E = O.map((row, i) => row.map((_, j) => R[i] * C[j] / N));
+  const contrib = O.map((row, i) => row.map((o, j) => (o - E[i][j]) ** 2 / E[i][j]));
+  const resid = O.map((row, i) => row.map((o, j) => (o - E[i][j]) / Math.sqrt(E[i][j])));
+  const chi = contrib.reduce((a, row) => a + row.reduce((s, v) => s + v, 0), 0), df = (r - 1) * (c - 1);
+  return { xl, fl, rows, cols, r, c, N, O, R, C, E, contrib, resid, chi, df, p: pvalue(chi, df),
+    V: Math.sqrt(chi / (N * Math.min(r - 1, c - 1))), xi, fi };
+}
+let A = null;
+
+/* ================= Rendering ================= */
+function grid(A, cell, rt, ct, gt, style) {
+  let h = `<table><thead><tr><th>${esc(A.xl)} \\ ${esc(A.fl)}</th>` + A.cols.map(c => `<th>${esc(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
+  A.rows.forEach((rw, i) => { h += `<tr><td><strong>${esc(rw)}</strong></td>` + A.cols.map((_, j) => `<td style="${style ? style(i, j) : ''}">${cell(i, j)}</td>`).join('') + `<td><strong>${rt(i)}</strong></td></tr>`; });
+  return h + '<tr><td><strong>Total</strong></td>' + A.cols.map((_, j) => `<td><strong>${ct(j)}</strong></td>`).join('') + `<td><strong>${gt}</strong></td></tr></tbody></table>`;
+}
+const heat = (v, max) => `background:rgba(51,65,85,${Math.min(1, v / max) * 0.45})`;
+const resStyle = r => { const a = Math.min(1, Math.abs(r) / 4) * 0.55; return r >= 0 ? `background:rgba(217,119,6,${a})` : `background:rgba(37,99,235,${a})`; };
+
+function renderTables() {
+  const N = A.N;
+  document.getElementById('t2title').innerHTML = `Observed contingency table (${A.r} &times; ${A.c}, N = ${N})`;
+  document.getElementById('rawNote').textContent = `Built programmatically from ${N} raw (${A.xl}, ${A.fl}) pairs.`;
+  document.getElementById('obsTable').innerHTML = grid(A, (i, j) => A.O[i][j], i => A.R[i], j => A.C[j], N);
+  document.getElementById('jointTable').innerHTML = grid(A, (i, j) => pct(A.O[i][j] / N), i => pct(A.R[i] / N), j => pct(A.C[j] / N), '100%');
+  document.getElementById('condFX').innerHTML = grid(A, (i, j) => pct(A.O[i][j] / A.R[i]), () => '100%', j => pct(A.C[j] / N), '100%');
+  document.getElementById('condXF').innerHTML = grid(A, (i, j) => pct(A.O[i][j] / A.C[j]), i => pct(A.R[i] / N), () => '100%', '100%');
+  document.getElementById('expTable').innerHTML = grid(A, (i, j) => A.E[i][j].toFixed(2), i => A.R[i], j => A.C[j], N);
+  const cmax = Math.max(...A.contrib.flat());
+  document.getElementById('contribTable').innerHTML = grid(A, (i, j) => A.contrib[i][j].toFixed(3),
+    i => A.contrib[i].reduce((a, b) => a + b, 0).toFixed(3), j => A.contrib.reduce((a, row) => a + row[j], 0).toFixed(3), A.chi.toFixed(3),
+    (i, j) => heat(A.contrib[i][j], cmax));
+  document.getElementById('resTable').innerHTML = grid(A, (i, j) => A.resid[i][j].toFixed(2), () => '', () => '', '', (i, j) => resStyle(A.resid[i][j]));
+  const small = A.E.flat().filter(v => v < 5).length, tot = A.r * A.c, minE = Math.min(...A.E.flat());
+  document.getElementById('expNote').innerHTML = `Smallest expected count: <strong>${minE.toFixed(2)}</strong>. Cells with E &lt; 5: ${small} of ${tot} (${(100 * small / tot).toFixed(0)}%). ` +
+    ((minE < 1 || small / tot > 0.2) ? '<span class="bad">The chi-square approximation may be unreliable: rely on the permutation test or merge categories.</span>' : '<span class="ok">The usual validity condition holds.</span>');
+}
+function vWord(v, k) { const s = v / (k === 1 ? 1 : Math.sqrt(k)); return s < 0.1 ? 'negligible' : s < 0.3 ? 'small to moderate' : s < 0.5 ? 'moderate to strong' : 'strong'; }
+function renderTest() {
+  const alpha = +val('alphaSel'), crit = critical(A.df, alpha), reject = A.p < alpha, k = Math.min(A.r - 1, A.c - 1);
+  let mi = 0, mj = 0; A.resid.forEach((row, i) => row.forEach((v, j) => { if (Math.abs(v) > Math.abs(A.resid[mi][mj])) { mi = i; mj = j; } }));
+  const big = A.resid[mi][mj];
+  document.getElementById('testOut').innerHTML =
+    `<table><tbody>
+      <tr><td>&chi;&sup2; statistic</td><td><strong>${A.chi.toFixed(4)}</strong></td></tr>
+      <tr><td>Degrees of freedom (r&minus;1)(c&minus;1)</td><td>${A.df}</td></tr>
+      <tr><td>Critical value at &alpha; = ${alpha}</td><td>${crit.toFixed(4)}</td></tr>
+      <tr><td>p-value</td><td><strong>${fp(A.p)}</strong></td></tr>
+      <tr><td>Cram&eacute;r&rsquo;s V</td><td>${A.V.toFixed(4)} (${vWord(A.V, k)} association, rough guide)</td></tr>
+      <tr><td>Most extreme cell</td><td>${esc(A.rows[mi])} &times; ${esc(A.cols[mj])}: observed ${A.O[mi][mj]}, expected ${A.E[mi][mj].toFixed(1)}, residual ${big.toFixed(2)}</td></tr>
+    </tbody></table>` +
+    (reject
+      ? `<div class="verdict dep"><strong>Reject H<sub>0</sub></strong> (&chi;&sup2; = ${A.chi.toFixed(2)} &gt; ${crit.toFixed(2)}, p ${A.p < 1e-4 ? '&lt; 0.0001' : '= ' + A.p.toFixed(4)}). ${esc(A.xl)} and ${esc(A.fl)} are <strong>statistically dependent</strong>: the distribution of ${esc(A.fl)} changes across the categories of ${esc(A.xl)}. The strength is ${vWord(A.V, k)} (V = ${A.V.toFixed(3)}). This is an association, not evidence of causation.</div>`
+      : `<div class="verdict ind"><strong>Fail to reject H<sub>0</sub></strong> (&chi;&sup2; = ${A.chi.toFixed(2)} &le; ${crit.toFixed(2)}, p = ${A.p.toFixed(4)}). The data show <strong>no significant evidence of dependence</strong>, consistent with independence. This does not prove independence: with a small sample the test may lack power.</div>`);
+}
+function renderChart() {
+  const labels = A.rows.concat(['Overall (marginal)']);
+  const ds = A.cols.map((c, j) => ({ label: String(c), backgroundColor: PAL[j % PAL.length],
+    data: A.rows.map((_, i) => 100 * A.O[i][j] / A.R[i]).concat([100 * A.C[j] / A.N]) }));
+  mk('chCond', { type: 'bar', data: { labels, datasets: ds }, options: { ...baseOpt,
+    scales: { x: { stacked: true, title: { display: true, text: A.xl } }, y: { stacked: true, max: 100, title: { display: true, text: '% within category' } } } } });
+}
+function renderScale() {
+  const rows = [0.25, 0.5, 1, 2, 5, 10].map(k => {
+    const chi = A.chi * k, p = pvalue(chi, A.df);
+    return [k, Math.round(A.N * k), chi.toFixed(2), fp(p), A.V.toFixed(4)];
+  });
+  document.getElementById('scaleTable').innerHTML = `<table><thead><tr><th>Factor k</th><th>N</th><th>&chi;&sup2;</th><th>p-value</th><th>Cram&eacute;r&rsquo;s V</th></tr></thead><tbody>` +
+    rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
+}
+
+/* ================= Permutation test ================= */
+function permTest(A, B) {
+  const { N, r, c, E, xi } = A, f = Int32Array.from(A.fi), out = new Float64Array(B), cnt = new Float64Array(r * c);
+  for (let b = 0; b < B; b++) {
+    for (let i = N - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)), t = f[i]; f[i] = f[j]; f[j] = t; }
+    cnt.fill(0); for (let k = 0; k < N; k++) cnt[xi[k] * c + f[k]]++;
+    let s = 0; for (let i = 0; i < r; i++) for (let j = 0; j < c; j++) { const d = cnt[i * c + j] - E[i][j]; s += d * d / E[i][j]; }
+    out[b] = s;
+  }
+  return out;
+}
+const vlinePlugin = { id: 'vline', afterDatasetsDraw(chart, a, o) {
+  if (o.idx === undefined) return; const x = chart.scales.x.getPixelForValue(o.idx), { top, bottom } = chart.chartArea, c = chart.ctx;
+  c.save(); c.strokeStyle = '#0f172a'; c.lineWidth = 2.2; c.setLineDash([6, 4]); c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom); c.stroke(); c.restore(); } };
+let permId = 0;
+function runPerm() {
+  const id = ++permId, B = 2000, out = document.getElementById('permOut');
+  out.innerHTML = '<p class="muted">Simulating&hellip;</p>';
+  setTimeout(() => {
+    if (id !== permId) return;
+    const sim = permTest(A, B); let ge = 0, mx = 0; for (const v of sim) { if (v >= A.chi - 1e-9) ge++; if (v > mx) mx = v; }
+    const pp = (ge + 1) / (B + 1), hi = Math.max(A.chi * 1.08, mx * 1.05), W = hi / 40, cn = new Array(40).fill(0);
+    for (const v of sim) cn[Math.min(39, Math.floor(v / W))]++;
+    const ctr = cn.map((_, i) => (i + 0.5) * W);
+    mk('chPerm', { type: 'bar', plugins: [vlinePlugin], data: { labels: ctr.map(x => x.toFixed(1)), datasets: [
+      { type: 'bar', label: 'Permutation (density)', data: cn.map(x => x / (B * W)), backgroundColor: '#64748b', borderRadius: 2 },
+      { type: 'line', label: `Chi-square density, df = ${A.df}`, data: ctr.map(x => chiPdf(x, A.df)), borderColor: '#0f172a', borderWidth: 2, pointRadius: 0 }] },
+      options: { ...baseOpt, plugins: { vline: { idx: A.chi / W - 0.5 } }, scales: { x: { ticks: { maxTicksLimit: 9 }, title: { display: true, text: 'chi-square statistic (dashed line: observed)' } }, y: { beginAtZero: true } } } });
+    out.innerHTML = `<p>Observed &chi;&sup2; = <strong>${A.chi.toFixed(2)}</strong>. Permutation p-value (${B} shuffles) = <strong>${pp.toFixed(4)}</strong> (smallest possible: ${(1 / (B + 1)).toFixed(4)}), against the chi-square p-value ${fp(A.p)}. ` +
+      `The simulated mean is ${(sim.reduce((a, b) => a + b, 0) / B).toFixed(2)}, theory predicts df = ${A.df}.</p>`;
+  }, 30);
+}
+
+/* ================= Control ================= */
+function load() {
+  const key = val('dsSel');
+  if (key === 'custom') { const c = parseCustom(document.getElementById('customIn').value); return analyze(c.xl, c.fl, c.pairs); }
+  return analyze(DS[key].xl, DS[key].fl, DS[key].pairs());
+}
+function onDs() {
+  const key = val('dsSel');
+  document.getElementById('customBox').style.display = key === 'custom' ? 'block' : 'none';
+  document.getElementById('dsNote').textContent = key === 'custom' ? 'Paste at least two categories per variable.' : DS[key].note;
+  renderAll();
+}
+function renderAll() {
+  A = load();
+  if (A.error) { ['obsTable', 'testOut'].forEach(i => document.getElementById(i).innerHTML = `<p class="bad">${A.error}</p>`); return; }
+  renderTables(); renderTest(); renderChart(); renderScale(); runPerm();
+}
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); btn.classList.add('active');
+  Object.values(charts).forEach(c => c.resize());
+}
+window.onload = onDs;
+</script>
+</body>
+</html>
